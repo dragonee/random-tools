@@ -13,11 +13,12 @@ setup(
     ],
     packages=('randomtools',),
     package_dir={'': 'src'},
-    install_requires=['docopt',],
+    install_requires=['docopt', 'requests'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
             'copiesfromcsv = randomtools.copiesfromcsv:main',
+            'observation = randomtools.observation:main',
         ],
     }
 )
