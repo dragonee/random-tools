@@ -84,9 +84,11 @@ def main():
                 for i, item in enumerate(tuples):
                     print("{}) {} ({}%)".format(i, item[0], item[1]))
 
-                text = input("Choice [number/filename/D/S]: ").strip()
+                text = input("Choice [number/filename/Default/Skip/Continue]: ").strip()
                 
-                if text == 's' or text == 'S':
+                if text == 'c' or text == 'C':
+                    continue
+                elif text == 's' or text == 'S':
                     link = None
                 elif text == 'd' or text == 'D':
                     link = guid_dict[arguments['--default']]

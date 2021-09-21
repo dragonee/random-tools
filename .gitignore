@@ -148,5 +148,6 @@ map.json
 links.json
 output.csv
 users.csv
+soda/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
