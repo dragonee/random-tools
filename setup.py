@@ -13,11 +13,15 @@ setup(
     ],
     packages=('randomtools',),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'requests'],
+    install_requires=['docopt', 'thefuzz', 'requests'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
             'copiesfromcsv = randomtools.copiesfromcsv:main',
+            'sodamatcher = randomtools.sodamatcher:main',
+            'movetoguids = randomtools.movetoguids:main',
+            'maptocsvcolumn = randomtools.maptocsvcolumn:main',
+            'maptocsv = randomtools.maptocsv:main',
             'observation = randomtools.observation:main',
         ],
     }
