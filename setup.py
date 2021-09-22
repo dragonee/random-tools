@@ -21,6 +21,7 @@ setup(
             'sodamatcher = randomtools.sodamatcher:main',
             'movetoguids = randomtools.movetoguids:main',
             'maptocsvcolumn = randomtools.maptocsvcolumn:main',
+            'maptocsv = randomtools.maptocsv:main',
         ],
     }
 )
