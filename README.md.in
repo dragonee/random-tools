@@ -1,0 +1,19 @@
+# Random tools I make
+
+## CSV/JSON tools
+
+[$ copiesfromcsv]
+[$ maptocsv]
+[$ maptocsvcolumn]
+
+## File tools
+
+[$ movetoguids]
+
+## SoDA mail matcher
+
+[$ sodamatcher]
+
+## Tasks collector support
+
+[$ observation]
