@@ -154,6 +154,10 @@ def main():
 
     os.unlink(tmpfile.name)
 
+    if payload['situation'] == '':
+        print("No changes were made to the Situation field.")
+        sys.exit(0)
+
     url = '{}/observation-api/'.format(config.url)
 
     r = requests.post(url, json=payload, auth=HTTPBasicAuth(config.user, config.password))
