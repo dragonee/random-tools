@@ -30,6 +30,10 @@ TEMPLATE = """
 
 """
 
+GOTOURL = """
+See more:
+- {url}/observations/
+"""
 
 import json, os, re, sys
 
@@ -164,6 +168,8 @@ def main():
 
     if r.ok:
         print(template_from_payload(r.json()))
+
+        print(GOTOURL.format(url=config.url).strip())
     else:
         try:
             print(json.dumps(r.json(), indent=4, sort_keys=True))
