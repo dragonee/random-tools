@@ -14,6 +14,15 @@
 
 [$ sodamatcher]
 
+Usage of these scripts with matcher:
+
+```
+movetoguids -p soda/domain_map.json soda/domains/ soda/encoded/
+sodamatcher -p soda/emails.json soda/users.csv soda/domain_map.json
+maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
+maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
+```
+
 ## Tasks collector support
 
 [$ observation]
