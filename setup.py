@@ -11,7 +11,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
     ],
-    packages=('randomtools',),
+    packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
     install_requires=['docopt', 'thefuzz', 'requests'],
     python_requires='>=3',

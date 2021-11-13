@@ -1,12 +1,13 @@
-"""Add an observation.
+"""Add a journal entry.
 
 Usage: 
-    observation [options]
+    journal [options]
 
 Options:
     --date DATE      Use specific date.
-    --thread THREAD  Use specific thread [default: big-picture].
-    --type TYPE      Choose type [default: observation].
+    --thread THREAD  Use specific thread [default: Daily].
+    --weekly         Alias for --thread weekly
+    --big-picture    Alias for --thread big-picture
     -h, --help       Show this message.
     --version        Show version information.
 """
@@ -14,25 +15,50 @@ Options:
 TEMPLATE = """
 > Date: {pub_date}
 > Thread: {thread}
-> Type: {type}
 
-# Situation (What happened?)
+- [{dreamstate}] Dreamstate
+- [{current_in_sync}] Current plan in-sync
+- [{next_in_sync}] Next plan in-sync
 
-{situation}
+# Current plan
 
-# Interpretation (How you saw it, what you felt?)
+## Focus
 
-{interpretation}
+{current_focus}
 
-# Approach (How should you approach it in the future?)
+## Want
 
-{approach}
+{current_want}
+
+# Reflection
+
+## Good (What did you do well today?)
+
+{good}
+
+# Better (How could you improve? What could you do better?)
+
+{better}
+
+# Best (How should you approach it in the future?)
+
+{best}
+
+# Next plan
+
+## Focus
+
+{next_focus}
+
+## Want
+
+{next_want}
 
 """
 
 GOTOURL = """
 See more:
-- {url}/observations/
+- {url}/periodical/
 """
 
 import json, os, re, sys
@@ -50,18 +76,31 @@ from requests.auth import HTTPBasicAuth
 
 from pathlib import Path
 
-
 from .config import TasksConfigFile
 
 
 def template_from_arguments(arguments):
+    if arguments['--weekly']:
+        thread = 'Weekly'
+    elif arguments['--big-picture']:
+        thread = 'big-picture'
+    else:
+        thread = arguments['--thread']
+
+
     return TEMPLATE.format(
         pub_date=arguments['--date'] or datetime.today().strftime('%Y-%m-%d'),
-        thread=arguments['--thread'],
-        type=arguments['--type'],
-        situation='',
-        interpretation='',
-        approach=''
+        thread=thread,
+        good='',
+        better='',
+        best='',
+        dreamstate=' ',
+        current_focus='',
+        current_want='',
+        current_in_sync=' ',
+        next_focus='',
+        next_want='',
+        next_in_sync=' ',
     ).lstrip()
 
 
@@ -69,7 +108,7 @@ def template_from_payload(payload):
     return TEMPLATE.format(**payload).lstrip()
 
 
-title_re = re.compile(r'^# (Situation|Interpretation|Approach)')
+title_re = re.compile(r'^# (Good|Better|Best)')
 meta_re = re.compile(r'^> (Date|Thread|Type): (.*)$')
 
 
