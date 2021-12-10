@@ -110,3 +110,19 @@ Options:
     -h, --help       Show this message.
     --version        Show version information.
 ```
+
+
+## boardmd (1.0)
+
+```
+Dump a board to markdown.
+
+Usage: 
+    boardmd [options]
+
+Options:
+    --thread THREAD  Use specific thread [default: big-picture].
+    --enumerate      Add numberic enumeration to points (e.g. 1.2.4.)
+    -h, --help       Show this message.
+    --version        Show version information.
+```

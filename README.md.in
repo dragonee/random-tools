@@ -26,3 +26,5 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ## Tasks collector support
 
 [$ observation]
+
+[$ boardmd]
