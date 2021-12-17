@@ -23,7 +23,8 @@ setup(
             'maptocsvcolumn = randomtools.maptocsvcolumn:main',
             'maptocsv = randomtools.maptocsv:main',
             'observation = randomtools.observation:main',
-            'boardmd = randomtools.boardmd:main'
+            'boardmd = randomtools.boardmd:main',
+            'onelinesummary = randomtools.onelinesummary:main'
         ],
     }
 )
