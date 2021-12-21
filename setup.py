@@ -24,7 +24,8 @@ setup(
             'maptocsv = randomtools.maptocsv:main',
             'observation = randomtools.observation:main',
             'boardmd = randomtools.boardmd:main',
-            'onelinesummary = randomtools.onelinesummary:main'
+            'onelinesummary = randomtools.onelinesummary:main',
+            'pdfrepeat = randomtools.pdfrepeat:main',
         ],
     }
 )
