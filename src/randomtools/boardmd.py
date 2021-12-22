@@ -33,6 +33,8 @@ from pathlib import Path
 
 from .config.tasks import TasksConfigFile
 
+pattern_s = re.compile(r'\s+')
+
 def threads_to_dict(response):
     thread_f = lambda thread: (thread['name'], thread['id'])
 
@@ -59,16 +61,16 @@ def empty_enumerator(path):
 
 
 def dotted_enumerator(path):
-    return ' {}.'.format('.'.join(map(str, path)))
+    return '{}.'.format('.'.join(map(str, path)))
 
 
 def state_func(item):
-    is_category = '☐' if len(item['children']) == 0 else ''
+    is_category = '[ ]' if len(item['children']) == 0 else ''
 
-    made_progress = '~' if item['data']['meaningfulMarkers']['madeProgress'] else is_category
+    made_progress = '[~]' if item['data']['meaningfulMarkers']['madeProgress'] else is_category
 
-    return '{} '.format(
-        '✓' if item['state']['checked'] else made_progress
+    return '{}'.format(
+        '[x]' if item['state']['checked'] else made_progress
     )
 
 
@@ -76,13 +78,13 @@ def importance(item):
     imp = item['data']['meaningfulMarkers']['important']
 
     if imp > 0:
-        return ' ({})'.format('!' * imp)
+        return '({})'.format('!' * imp)
 
     return ''
 
 
 def recur_print_md(tree, enumerator, path=tuple()):        
-    title_str = "{} {}{} {}{}".format(
+    title_str = "{} {} {} {} {}".format(
         "#" * len(path), 
         state_func(tree),
         enumerator(path), 
@@ -90,7 +92,7 @@ def recur_print_md(tree, enumerator, path=tuple()):
         importance(tree)
     )
 
-    print(title_str)
+    print(pattern_s.sub(' ', title_str).strip())
     print("")
 
     for i, item in enumerate(tree['children'], start=1):
