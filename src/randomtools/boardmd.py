@@ -70,7 +70,7 @@ def state_func(item):
     made_progress = '[~]' if item['data']['meaningfulMarkers']['madeProgress'] else is_category
 
     return '{}'.format(
-        '[x]' if item['state']['checked'] else made_progress
+        '[x]' if item['state'].get('checked', False) else made_progress
     )
 
 
