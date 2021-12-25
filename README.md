@@ -2,8 +2,7 @@
 
 ## CSV/JSON tools
 
-
-## copiesfromcsv (1.0)
+### copiesfromcsv (1.0)
 
 ```
 Usage: 
@@ -16,7 +15,7 @@ Options:
     --version   Show version information.
 ```
 
-## maptocsv (1.0)
+### maptocsv (1.0)
 
 ```
 Convert a JSON map dictionary into CSV file with two columns
@@ -31,7 +30,7 @@ Options:
     --version   Show version information.
 ```
 
-## maptocsvcolumn (1.0)
+### maptocsvcolumn (1.0)
 
 ```
 Append a JSON map to a CSV column.
@@ -48,8 +47,7 @@ Options:
 
 ## File tools
 
-
-## movetoguids (1.0)
+### movetoguids (1.0)
 
 ```
 Copy files in directory to GUID generated files.
@@ -65,8 +63,7 @@ Options:
 
 ## SoDA mail matcher
 
-
-## sodamatcher (1.0)
+### sodamatcher (1.0)
 
 ```
 Match SoDA members e-mails with GUID map. Output a new CSV file.
@@ -94,8 +91,7 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Tasks collector support
 
-
-## observation (1.0)
+### observation (1.0)
 
 ```
 Add an observation.
@@ -111,8 +107,7 @@ Options:
     --version        Show version information.
 ```
 
-
-## boardmd (1.0)
+### boardmd (1.0)
 
 ```
 Dump a board to markdown.
@@ -123,6 +118,20 @@ Usage:
 Options:
     --thread THREAD  Use specific thread [default: big-picture].
     --enumerate      Add numberic enumeration to points (e.g. 1.2.4.)
+    -h, --help       Show this message.
+    --version        Show version information.
+```
+
+### observationdump (1.0)
+
+```
+Dump observations to markdown files.
+
+Usage: 
+    observationdump [options] PATH
+
+Options:
+    --year YEAR      Dump specific year.
     -h, --help       Show this message.
     --version        Show version information.
 ```

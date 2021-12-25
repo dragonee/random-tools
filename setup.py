@@ -13,7 +13,7 @@ setup(
     ],
     packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'python-slugify'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
@@ -26,6 +26,7 @@ setup(
             'boardmd = randomtools.boardmd:main',
             'onelinesummary = randomtools.onelinesummary:main',
             'pdfrepeat = randomtools.pdfrepeat:main',
+            'observationdump = randomtools.observationdump:main',
         ],
     }
 )

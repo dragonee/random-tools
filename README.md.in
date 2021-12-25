@@ -2,17 +2,19 @@
 
 ## CSV/JSON tools
 
-[$ copiesfromcsv]
-[$ maptocsv]
-[$ maptocsvcolumn]
+[$ make-readme -h 3 copiesfromcsv]
+
+[$ make-readme -h 3 maptocsv]
+
+[$ make-readme -h 3 maptocsvcolumn]
 
 ## File tools
 
-[$ movetoguids]
+[$ make-readme -h 3 movetoguids]
 
 ## SoDA mail matcher
 
-[$ sodamatcher]
+[$ make-readme -h 3 sodamatcher]
 
 Usage of these scripts with matcher:
 
@@ -25,6 +27,8 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Tasks collector support
 
-[$ observation]
+[$ make-readme -h 3 observation]
 
-[$ boardmd]
+[$ make-readme -h 3 boardmd]
+
+[$ make-readme -h 3 observationdump]
