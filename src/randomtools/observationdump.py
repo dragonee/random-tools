@@ -4,6 +4,8 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    --open           Get only open observations.
+    --closed         Get only closed observations.
     -d DATE_FROM, --from FROM  Dump from specific date.
     -D DATE_TO, --to DATE_TO   Dump to specific date.
     -f, --force      Overwrite existing files.
@@ -13,7 +15,7 @@ Options:
     --version        Show version information.
 """
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 
 import json, os, re, sys, pprint
 
@@ -54,8 +56,19 @@ TEMPLATE = """
 
 """
 
+CLOSED_TEMPLATE = """
+> Closed on {date_closed}
+"""
+
+def closed(payload):
+    if not payload['date_closed']:
+        return ''
+    
+    return CLOSED_TEMPLATE.format(**payload).lstrip()
+
+
 def template_from_payload(payload):
-    return TEMPLATE.format(**payload).lstrip()
+    return TEMPLATE.format(**payload).lstrip() + closed(payload)
 
 
 def write_observation(observation, path, force=False):
@@ -101,6 +114,12 @@ def main():
         date_to = arguments['--to'] or datetime.today().strftime('%Y-%m-%d')
 
         filter_arg = f'?pub_date__gte={date_from}&pub_date__lte={date_to}'
+
+    if not single:
+        if arguments['--open']:
+            filter_arg += '&date_closed__isnull=true'
+        elif arguments['--closed']:
+            filter_arg += '&date_closed__isnull=false'
 
     url = '{}/observation-api/{}'.format(config.url, filter_arg)
 

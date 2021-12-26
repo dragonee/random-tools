@@ -91,7 +91,7 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Tasks collector support
 
-### observation (1.0)
+### observation (1.0.1)
 
 ```
 Add an observation.
@@ -122,7 +122,7 @@ Options:
     --version        Show version information.
 ```
 
-### observationdump (1.0.2)
+### observationdump (1.0.3)
 
 ```
 Dump observations to markdown files.
@@ -131,6 +131,8 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    --open           Get only open observations.
+    --closed         Get only closed observations.
     -d DATE_FROM, --from FROM  Dump from specific date.
     -D DATE_TO, --to DATE_TO   Dump to specific date.
     -f, --force      Overwrite existing files.
