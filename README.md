@@ -139,3 +139,18 @@ Options:
     -h, --help       Show this message.
     --version        Show version information.
 ```
+
+## Markdown utilities
+
+### onelinesummary (1.0)
+
+```
+Create one-line summary of all documents in a directory with links.
+
+Usage:
+    onelinesummary [options] PATH
+
+Options:
+    -h, --help  Show this message.
+    --version   Show version information.
+```

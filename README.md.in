@@ -32,3 +32,7 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 [$ make-readme -h 3 boardmd]
 
 [$ make-readme -h 3 observationdump]
+
+## Markdown utilities
+
+[$ make-readme -h 3 onelinesummary]
