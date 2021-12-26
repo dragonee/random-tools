@@ -122,7 +122,7 @@ Options:
     --version        Show version information.
 ```
 
-### observationdump (1.0)
+### observationdump (1.0.1)
 
 ```
 Dump observations to markdown files.
@@ -131,6 +131,8 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    -f, --force      Overwrite existing files.
+    --pk ID          Dump object with specific ID.
     --year YEAR      Dump specific year.
     -h, --help       Show this message.
     --version        Show version information.

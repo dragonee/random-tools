@@ -4,6 +4,8 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    -f, --force      Overwrite existing files.
+    --pk ID          Dump object with specific ID.
     --year YEAR      Dump specific year.
     -h, --help       Show this message.
     --version        Show version information.
@@ -52,13 +54,18 @@ def template_from_payload(payload):
     return TEMPLATE.format(**payload).lstrip()
 
 
-def write_observation(observation, path):
+def write_observation(observation, path, force=False):
     text = template_from_payload(observation)
 
     filename = '{}-{}.md'.format(
         observation['pub_date'],
         slugify(observation['situation'], max_length=32, word_boundary=True)
     )
+
+    new_file = path / filename
+
+    if new_file.exists() and not force:
+        return
 
     with open(path / filename, 'w') as f:
         f.write(text)
@@ -67,20 +74,26 @@ def write_observation(observation, path):
 
 
 def main():
-    arguments = docopt(__doc__, version='1.0')
+    arguments = docopt(__doc__, version='1.0.1')
 
     directory = Path(arguments['PATH']).resolve(strict=True)
 
     config = TasksConfigFile()
 
-    date_filter = ''
+    single = False
+
+    filter_arg = ''
 
     if arguments['--year']:
         year = arguments['--year']
 
-        date_filter = f'?pub_date__gte={year}-01-01&pub_date__lte={year}-12-31'
+        filter_arg = f'?pub_date__gte={year}-01-01&pub_date__lte={year}-12-31'
+    elif arguments['--pk']:
+        filter_arg = '{}/'.format(arguments['--pk'])
 
-    url = '{}/observation-api/{}'.format(config.url, date_filter)
+        single = True
+
+    url = '{}/observation-api/{}'.format(config.url, filter_arg)
 
     auth = HTTPBasicAuth(config.user, config.password)
 
@@ -89,10 +102,20 @@ def main():
 
         out = r.json()
 
-        for item in out['results']:
-            filename = write_observation(item, directory)
+        if not r.ok:
+            raise RuntimeError("{}: {}".format(r.status_code, str(out)))
 
-            print('Create {}'.format(filename))
+        if not 'results' in out:
+            out = {
+                'results': [out],
+                'next': None
+            }
+
+        for item in out['results']:
+            filename = write_observation(item, directory, force=arguments['--force'])
+
+            if filename:
+                print('Create {}'.format(filename))
 
         url = out['next']
 
