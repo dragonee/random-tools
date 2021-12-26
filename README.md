@@ -122,7 +122,7 @@ Options:
     --version        Show version information.
 ```
 
-### observationdump (1.0.1)
+### observationdump (1.0.2)
 
 ```
 Dump observations to markdown files.
@@ -131,6 +131,8 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    -d DATE_FROM, --from FROM  Dump from specific date.
+    -D DATE_TO, --to DATE_TO   Dump to specific date.
     -f, --force      Overwrite existing files.
     --pk ID          Dump object with specific ID.
     --year YEAR      Dump specific year.

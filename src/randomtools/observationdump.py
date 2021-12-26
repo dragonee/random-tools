@@ -4,12 +4,16 @@ Usage:
     observationdump [options] PATH
 
 Options:
+    -d DATE_FROM, --from FROM  Dump from specific date.
+    -D DATE_TO, --to DATE_TO   Dump to specific date.
     -f, --force      Overwrite existing files.
     --pk ID          Dump object with specific ID.
     --year YEAR      Dump specific year.
     -h, --help       Show this message.
     --version        Show version information.
 """
+
+VERSION = '1.0.2'
 
 import json, os, re, sys, pprint
 
@@ -74,7 +78,7 @@ def write_observation(observation, path, force=False):
 
 
 def main():
-    arguments = docopt(__doc__, version='1.0.1')
+    arguments = docopt(__doc__, version=VERSION)
 
     directory = Path(arguments['PATH']).resolve(strict=True)
 
@@ -92,6 +96,11 @@ def main():
         filter_arg = '{}/'.format(arguments['--pk'])
 
         single = True
+    elif arguments['--from']:
+        date_from = arguments['--from']
+        date_to = arguments['--to'] or datetime.today().strftime('%Y-%m-%d')
+
+        filter_arg = f'?pub_date__gte={date_from}&pub_date__lte={date_to}'
 
     url = '{}/observation-api/{}'.format(config.url, filter_arg)
 
