@@ -85,7 +85,7 @@ def add_stack_to_payload(payload, name, lines):
         
 
 def main():
-    arguments = docopt(__doc__, version='1.0')
+    arguments = docopt(__doc__, version='1.0.1')
 
     config = TasksConfigFile()
 
@@ -133,10 +133,11 @@ def main():
         if current_name is not None:
             add_stack_to_payload(payload, current_name, current_stack)
 
-    os.unlink(tmpfile.name)
-
     if payload['situation'] == '':
         print("No changes were made to the Situation field.")
+
+        os.unlink(tmpfile.name)
+
         sys.exit(0)
 
     url = '{}/observation-api/'.format(config.url)
@@ -147,11 +148,18 @@ def main():
         print(template_from_payload(r.json()))
 
         print(GOTOURL.format(url=config.url).strip())
+
+        os.unlink(tmpfile.name)
     else:
         try:
             print(json.dumps(r.json(), indent=4, sort_keys=True))
         except json.decoder.JSONDecodeError:
             print("HTTP {}\n{}".format(r.status_code, r.text))
+        
+        print("The temporary file was saved at {}".format(
+            tmpfile.name
+        ))
+
 
 
         
