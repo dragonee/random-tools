@@ -157,7 +157,7 @@ Options:
     --version   Show version information.
 ```
 
-### usecase (1.0.1)
+### usecase (1.0.2)
 
 ```
 List usecases from Markdown files as Markdown list.
@@ -166,9 +166,11 @@ Usage:
     usecase [options] PATH
 
 Options:
-    -h, --help       Show this message.
-    --version        Show version information.
     --github-wiki    Display names in Github Wiki format
+    -h HEADER, --header HEADER  Use header for file names.
+    --no-colon       Do not put colon after file name.
+    --help           Show this message.
+    --version        Show version information.
 
 Scenario file format:
 

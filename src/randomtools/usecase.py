@@ -5,9 +5,11 @@ Usage:
     usecase [options] PATH
 
 Options:
-    -h, --help       Show this message.
-    --version        Show version information.
     --github-wiki    Display names in Github Wiki format
+    -h HEADER, --header HEADER  Use header for file names.
+    --no-colon       Do not put colon after file name.
+    --help           Show this message.
+    --version        Show version information.
 
 Scenario file format:
 
@@ -94,7 +96,7 @@ def default_scenario_name_func(scenario):
 
 
 def print_scenario(scenario, name_func=default_scenario_name_func):
-    print('{}:'.format(name_func(scenario)))
+    print(name_func(scenario))
     
     for i, case in enumerate(scenario.cases, start=1):
         if case.version:
@@ -112,8 +114,21 @@ def print_scenarios(scenarios, **kwargs):
         print_scenario(scenario, **kwargs)
 
 
+def decorate_with_colon(f):
+    def wrapped(text):
+        return '{}:'.format(f(text))
+
+    return wrapped
+
+
+def decorate_with_header(f, level=1):
+    def wrapped(text):
+        return '{} {}\n'.format('#' * level, f(text))
+
+    return wrapped
+
 def main():
-    arguments = docopt(__doc__, version='1.0.1')
+    arguments = docopt(__doc__, version='1.0.2')
 
     filename = Path(arguments['PATH']).resolve(strict=True)
 
@@ -128,14 +143,26 @@ def main():
         if scenario := read_file(path):
             scenarios.append(scenario)
 
+    colon = not arguments['--no-colon']
+
     name_func = default_scenario_name_func
 
     if arguments['--github-wiki']:
+        colon = False
+
         def name_func(scenario):
             return '[[{}]]'.format(scenario.path.stem)
     elif filename.is_dir():
         def name_func(scenario):
             return str(scenario.path.relative_to(filename))
+
+    if arguments['--header']:
+        header_level = int(arguments['--header'])
+
+        name_func = decorate_with_header(name_func, level=header_level)
+    
+    if colon:
+        name_func = decorate_with_colon(name_func)
 
     print_scenarios(
         scenarios,
