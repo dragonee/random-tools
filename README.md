@@ -157,7 +157,7 @@ Options:
     --version   Show version information.
 ```
 
-### usecase (1.0)
+### usecase (1.0.1)
 
 ```
 List usecases from Markdown files as Markdown list.
@@ -168,6 +168,7 @@ Usage:
 Options:
     -h, --help       Show this message.
     --version        Show version information.
+    --github-wiki    Display names in Github Wiki format
 
 Scenario file format:
 

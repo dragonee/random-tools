@@ -7,6 +7,7 @@ Usage:
 Options:
     -h, --help       Show this message.
     --version        Show version information.
+    --github-wiki    Display names in Github Wiki format
 
 Scenario file format:
 
@@ -88,17 +89,16 @@ def read_file(filename):
     return Scenario(cases=cases, path=filename)
 
 
-def print_scenario(scenario, relative_to=None):
-    path = scenario.path
+def default_scenario_name_func(scenario):
+    return scenario.path.name
 
-    if relative_to:
-        path = path.relative_to(relative_to)
 
-    print('{}:'.format(path))
+def print_scenario(scenario, name_func=default_scenario_name_func):
+    print('{}:'.format(name_func(scenario)))
     
     for i, case in enumerate(scenario.cases, start=1):
         if case.version:
-            version_string = ' ({})'.format(case.version)
+            version_string = ' (v{})'.format(case.version)
         else:
             version_string = ''
 
@@ -107,13 +107,13 @@ def print_scenario(scenario, relative_to=None):
     print('')
 
 
-def print_scenarios(scenarios, relative_to=None):
+def print_scenarios(scenarios, **kwargs):
     for scenario in scenarios:
-        print_scenario(scenario, relative_to)
+        print_scenario(scenario, **kwargs)
 
 
 def main():
-    arguments = docopt(__doc__, version='1.0')
+    arguments = docopt(__doc__, version='1.0.1')
 
     filename = Path(arguments['PATH']).resolve(strict=True)
 
@@ -128,7 +128,16 @@ def main():
         if scenario := read_file(path):
             scenarios.append(scenario)
 
+    name_func = default_scenario_name_func
+
+    if arguments['--github-wiki']:
+        def name_func(scenario):
+            return '[[{}]]'.format(scenario.path.stem)
+    elif filename.is_dir():
+        def name_func(scenario):
+            return str(scenario.path.relative_to(filename))
+
     print_scenarios(
-        scenarios, 
-        filename if filename.is_dir() else filename.parent
+        scenarios,
+        name_func=name_func
     )
