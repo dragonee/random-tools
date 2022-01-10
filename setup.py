@@ -27,6 +27,7 @@ setup(
             'onelinesummary = randomtools.onelinesummary:main',
             'pdfrepeat = randomtools.pdfrepeat:main',
             'observationdump = randomtools.observationdump:main',
+            'usecase = randomtools.usecase:main',
         ],
     }
 )

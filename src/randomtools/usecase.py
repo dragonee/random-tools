@@ -7,179 +7,109 @@ Usage:
 Options:
     -h, --help       Show this message.
     --version        Show version information.
+
+Scenario file format:
+
+# (vX.Y)            <- version, optional
+
+## X. Something     <- a case
+
+## X. .Hidden       <- This will not show up
+
+## Cases
+
+1. Some case        <- short notation
+2. Some other case  <- can also be placed on top of file
+
 """
 
 
-GOTOURL = """
-See more:
-- {url}/observations/
-"""
-
-import json, os, re, sys, pprint
+import os, re, sys
 
 from docopt import docopt
 
-from datetime import datetime
-
-import tempfile
-
-import subprocess
-
-import requests
-from requests.auth import HTTPBasicAuth
-
 from pathlib import Path
-
-from .config.tasks import TasksConfigFile
-
-from mistletoe import Document, ast_renderer
 
 from dataclasses import dataclass
 
-from enum import Enum
-
-def threads_to_dict(response):
-    thread_f = lambda thread: (thread['name'], thread['id'])
-
-    return dict(map(thread_f, response['results']))
-
-
-def get_board_meta(response):
-    board = response['results'][0]
-
-    return {
-        'focus': board['focus'],
-        'date_started': board['date_started'],
-        'date_closed': board['date_closed'],
-        'id': board['id'],
-    }
-
-
-def get_state_tree(response):
-    return response['results'][0]['state']
-
-
-def empty_enumerator(path):
-    return ''
-
-
-def dotted_enumerator(path):
-    return ' {}.'.format('.'.join(map(str, path)))
-
-
-def state_func(item):
-    is_category = '☐' if len(item['children']) == 0 else ''
-
-    made_progress = '~' if item['data']['meaningfulMarkers']['madeProgress'] else is_category
-
-    return '{} '.format(
-        '✓' if item['state']['checked'] else made_progress
-    )
-
-
-def importance(item):
-    imp = item['data']['meaningfulMarkers']['important']
-
-    if imp > 0:
-        return ' ({})'.format('!' * imp)
-
-    return ''
-
-
-def recur_print_md(tree, enumerator, path=tuple()):        
-    title_str = "{} {}{} {}{}".format(
-        "#" * len(path), 
-        state_func(tree),
-        enumerator(path), 
-        tree['text'],
-        importance(tree)
-    )
-
-    print(title_str)
-    print("")
-
-    for i, item in enumerate(tree['children'], start=1):
-        recur_print_md(item, enumerator, path + (i,))
 
 @dataclass
 class Case:
     name: str
-    version: str
-    initial_conditions: str
-    steps: list[str]
-    data: str
-    expected_result: str
+    simple: bool
+    original_enumeration: str
+    version: str = ''
+
 
 @dataclass
 class Scenario:
-    name: str
-    description: str
-    author: str
-    initial_conditions: str
+    path: Path
     cases: list[Case]
 
-class ParserState(Enum):
-    INITIAL = 1
-    DESCRIPTION_OR_META_OR_CASES = 2
-    CASES = 3
 
+re_version = re.compile(r'^#{1,3} \(v([\d\.\-\w]+)\)')
+re_cases = re.compile(r'^#{1,3} Cases')
+re_case = re.compile(r'^#{1,3} (\d+)\. (.+)$')
 
-def extract_case_from_ast(node):
-    return node
-
-def to_plain_text(token):
-    if token['type'] == 'RawText':
-        return token['content']
-
-    return ' '.join([to_plain_text(node) for node in token['children']]).strip()
-
-
-def extract_scenario_from_ast(ast):
-    return ast
-
-    state = ParserState.INITIAL
-
-    name = None
-    description = None
-    author = None
-    initial_conditions = None
-    cases = []
-
-    def parse_node(node):
-
-    for node in ast['children']:
-        if state == ParserState.INITIAL and node['type'] == 'Heading' and node['level'] == 1:
-            state = ParserState.DESCRIPTION_OR_META_OR_CASES
-            name = to_plain_text(node)
-        
-        if state == ParserState.DESCRIPTION_OR_META_OR_CASES and node['type'] == 'Paragraph':
-            description = to_plain_text(node)
-        
-        if state == ParserState.DESCRIPTION_OR_META_OR_CASES and node['type'] == 'List':
-            for meta_node in node['children']:
-                
-
-        
-
-
-    return Scenario(
-        name=name,
-        description=description,
-        author=author,
-        initial_conditions=initial_conditions,
-        cases=cases
-    )
-        
-
+re_case_simple = re.compile(r'^(\d+)\. (.+)$')
 
 
 def read_file(filename):
+    in_cases = True
+
+    case_dict = {'version': ''}
+
+    cases = []
+
     with open(filename, 'r') as f:
-        document = Document(f)
+        for line in f.readlines():
+            if m := re_version.match(line):
+                case_dict['version'] = m.group(1)
+                in_cases = False
+            elif m := re_cases.match(line):
+                in_cases = True
+            elif m := re_case.match(line):
+                if m.group(2).startswith('.'):
+                    continue
 
-        ast = ast_renderer.get_ast(document)
+                case_dict['name'] = m.group(2)
+                case_dict['original_enumeration'] = m.group(1)
+                cases.append(Case(**case_dict, simple=False))
+            elif in_cases and (m := re_case_simple.match(line)):
+                case_dict['name'] = m.group(2)
+                case_dict['original_enumeration'] = m.group(1)
+                cases.append(Case(**case_dict, simple=True))
+            elif line.startswith('#'):
+                in_cases = False
+    
+    if len(cases) == 0:
+        return None
 
-        return extract_scenario_from_ast(ast)
+    return Scenario(cases=cases, path=filename)
+
+
+def print_scenario(scenario, relative_to=None):
+    path = scenario.path
+
+    if relative_to:
+        path = path.relative_to(relative_to)
+
+    print('{}:'.format(path))
+    
+    for i, case in enumerate(scenario.cases, start=1):
+        if case.version:
+            version_string = ' ({})'.format(case.version)
+        else:
+            version_string = ''
+
+        print('{}. {}{}'.format(i, case.name, version_string))
+    
+    print('')
+
+
+def print_scenarios(scenarios, relative_to=None):
+    for scenario in scenarios:
+        print_scenario(scenario, relative_to)
 
 
 def main():
@@ -187,4 +117,18 @@ def main():
 
     filename = Path(arguments['PATH']).resolve(strict=True)
 
-    pprint.pprint(read_file(filename))    
+    if filename.is_dir():
+        paths = filename.glob('**/*.md')
+    else:
+        paths = [filename]
+
+    scenarios = []
+
+    for path in paths:
+        if scenario := read_file(path):
+            scenarios.append(scenario)
+
+    print_scenarios(
+        scenarios, 
+        filename if filename.is_dir() else filename.parent
+    )

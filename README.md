@@ -156,3 +156,29 @@ Options:
     -h, --help  Show this message.
     --version   Show version information.
 ```
+
+### usecase (1.0)
+
+```
+List usecases from Markdown files as Markdown list.
+
+Usage: 
+    usecase [options] PATH
+
+Options:
+    -h, --help       Show this message.
+    --version        Show version information.
+
+Scenario file format:
+
+# (vX.Y)            <- version, optional
+
+## X. Something     <- a case
+
+## X. .Hidden       <- This will not show up
+
+## Cases
+
+1. Some case        <- short notation
+2. Some other case  <- can also be placed on top of file
+```
