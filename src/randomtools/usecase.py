@@ -68,7 +68,7 @@ def read_file(filename):
         for line in f.readlines():
             if m := re_version.match(line):
                 case_dict['version'] = m.group(1)
-                in_cases = False
+                in_cases = True
             elif m := re_cases.match(line):
                 in_cases = True
             elif m := re_case.match(line):
