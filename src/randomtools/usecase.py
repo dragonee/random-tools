@@ -79,6 +79,9 @@ def read_file(filename):
                 case_dict['original_enumeration'] = m.group(1)
                 cases.append(Case(**case_dict, simple=False))
             elif in_cases and (m := re_case_simple.match(line)):
+                if m.group(2).startswith('.'):
+                    continue
+
                 case_dict['name'] = m.group(2)
                 case_dict['original_enumeration'] = m.group(1)
                 cases.append(Case(**case_dict, simple=True))
