@@ -28,6 +28,7 @@ setup(
             'pdfrepeat = randomtools.pdfrepeat:main',
             'observationdump = randomtools.observationdump:main',
             'usecase = randomtools.usecase:main',
+            'wish = randomtools.wish:main',
         ],
     }
 )
