@@ -87,20 +87,6 @@ def journal_template_from_payload(payload, config, template):
     ).lstrip()
 
 
-title_re = re.compile(r'^# (Situation|Interpretation|Approach)')
-meta_re = re.compile(r'^> (Date|Thread|Type): (.*)$')
-
-
-def add_meta_to_payload(payload, name, item):
-    if name == 'Date':
-        name = 'pub_date'
-
-    payload[name.lower()] = item
-
-
-def add_stack_to_payload(payload, name, lines):
-    payload[name.lower()] = ''.join(lines).strip()
-
 @dataclass
 class Stage:
     stage: int = 0
