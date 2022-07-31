@@ -13,7 +13,7 @@ setup(
     ],
     packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', 'python-slugify'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'python-slugify', 'pyyaml', 'colored'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
@@ -29,6 +29,7 @@ setup(
             'observationdump = randomtools.observationdump:main',
             'usecase = randomtools.usecase:main',
             'wish = randomtools.wish:main',
+            'quest = randomtools.quest:main',
         ],
     }
 )

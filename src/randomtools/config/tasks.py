@@ -7,6 +7,7 @@ class TasksConfigFile:
     url = None
     user = None
     password = None
+    quest_path = None
 
     def __init__(self):
         self.reader = ConfigParser()
@@ -17,6 +18,12 @@ class TasksConfigFile:
             self.url = self.reader['Tasks']['url']
             self.user = self.reader['Tasks']['user']
             self.password = self.reader['Tasks']['password']
+
+            quest_path = self.reader['Tasks'].get('quest_path')
+
+            if quest_path:
+                self.quest_path = Path(quest_path).expanduser()
+
         except KeyError:
             raise KeyError("Create ~/.tasks-collector.ini file with section [Tasks] containing url/user/password")
 
