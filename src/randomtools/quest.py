@@ -176,7 +176,7 @@ def main():
     payload = {
         'quest': {
             'name': quest.name,
-            'slug': arguments['KEY'],
+            'slug': arguments['KEY'].replace('/', '_'),
             'date_closed': date_closed,
         },
         'stage': stage_number,
