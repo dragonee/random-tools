@@ -70,7 +70,9 @@ def journal_template_from_payload(payload, config, template):
             payload['quest']['date_closed']
         )
     elif payload['stage'] > 0:
-        motivational_quote = "Stage {} completed. You are on your way!"
+        motivational_quote = "Stage {} completed. You are on your way!".format(
+            payload['quest']['stage']
+        )
     else:
         motivational_quote = "Another stage of the quest finished!"
 
