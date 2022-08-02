@@ -201,7 +201,7 @@ def main():
             tmpfile.name
         ))
 
-        os.exit(1)
+        sys.exit(1)
 
     for reward in stage.rewards:
         reward_payload = {
