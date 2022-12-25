@@ -66,9 +66,27 @@ def closed(payload):
     
     return CLOSED_TEMPLATE.format(**payload).lstrip()
 
+def transform_dict(dct, **kwargs):
+    dct_copy = dct.copy()
+
+    for k, f in kwargs.items():
+        dct_copy[k] = f(dct[k])
+    
+    return dct_copy
+
 
 def template_from_payload(payload):
-    return TEMPLATE.format(**payload).lstrip() + closed(payload)
+    def strip_field(value):
+        return value.replace('\r', '')
+    
+    new_payload = transform_dict(
+        payload,
+        situation=strip_field,
+        interpretation=strip_field,
+        approach=strip_field,
+    )
+
+    return TEMPLATE.format(**new_payload).lstrip() + closed(payload)
 
 
 def write_observation(observation, path, force=False):
