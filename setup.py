@@ -30,6 +30,7 @@ setup(
             'usecase = randomtools.usecase:main',
             'wish = randomtools.wish:main',
             'quest = randomtools.quest:main',
+            'addtask = randomtools.addtask:main',
         ],
     }
 )
