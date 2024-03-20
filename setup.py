@@ -31,6 +31,7 @@ setup(
             'wish = randomtools.wish:main',
             'quest = randomtools.quest:main',
             'addtask = randomtools.addtask:main',
+            'update = randomtools.update:main',
         ],
     }
 )

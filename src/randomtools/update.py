@@ -1,33 +1,17 @@
-"""Add an observation.
+"""Add update to an observation.
 
 Usage: 
-    observation [options]
+    update [options] [ID]
 
 Options:
-    --date DATE      Use specific date.
-    -s, --save       Save as default for updates [default: False].
-    --thread THREAD  Use specific thread [default: big-picture].
-    --type TYPE      Choose type [default: observation].
     -h, --help       Show this message.
     --version        Show version information.
 """
 
 TEMPLATE = """
-> Date: {pub_date}
-> Thread: {thread}
-> Type: {type}
+# Comment ({pub_date})
 
-# Situation (What happened?)
-
-{situation}
-
-# Interpretation (How you saw it, what you felt?)
-
-{interpretation}
-
-# Approach (How should you approach it in the future?)
-
-{approach}
+{comment}
 
 """
 
@@ -49,7 +33,6 @@ import subprocess
 import requests
 from requests.auth import HTTPBasicAuth
 
-
 from pathlib import Path
 
 from .config.tasks import TasksConfigFile
@@ -57,34 +40,36 @@ from .config.tasks import TasksConfigFile
 
 def template_from_arguments(arguments):
     return TEMPLATE.format(
-        pub_date=arguments['--date'] or datetime.today().strftime('%Y-%m-%d'),
-        thread=arguments['--thread'],
-        type=arguments['--type'],
-        situation='',
-        interpretation='',
-        approach=''
+        comment='',
+        pub_date=datetime.today().strftime('%Y-%m-%d'),
     ).lstrip()
 
 
 def template_from_payload(payload):
     return TEMPLATE.format(**payload).lstrip()
 
-OBSERVATION_FILE_PATH = os.path.expanduser(os.path.join('~', '.observation_id'))
-
-title_re = re.compile(r'^# (Situation|Interpretation|Approach)')
-meta_re = re.compile(r'^> (Date|Thread|Type): (.*)$')
+title_re = re.compile(r'^# (Comment)')
+meta_re = re.compile(r'^> (Nonexistent): (.*)$')
 
 
 def add_meta_to_payload(payload, name, item):
-    if name == 'Date':
-        name = 'pub_date'
-
-    payload[name.lower()] = item
-
+    pass
 
 def add_stack_to_payload(payload, name, lines):
     payload[name.lower()] = ''.join(lines).strip()
-        
+
+
+OBSERVATION_FILE_PATH = os.path.expanduser(os.path.join('~', '.observation_id'))
+
+def get_saved_observation_id():
+    try:
+        with open(OBSERVATION_FILE_PATH) as f:
+            return int(f.read(32).strip())
+    except FileNotFoundError as e:
+        pass
+    
+    return None
+
 
 def main():
     arguments = docopt(__doc__, version='1.0.1')
@@ -94,6 +79,13 @@ def main():
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md')
 
     template = template_from_arguments(arguments)
+
+    observation_id = arguments['ID'] or get_saved_observation_id()
+
+    if not observation_id:
+        print("Error: No Observation ID was given.")
+
+        sys.exit(1)
 
     with tmpfile:
         tmpfile.write(template)
@@ -108,12 +100,8 @@ def main():
         sys.exit(1)
 
     payload = {
-        'pub_date': None,
-        'thread': None,
-        'type': None,
-        'situation': None,
-        'interpretation': None,
-        'approach': None,
+        'comment': None,
+        'observation': observation_id
     }
 
     with open(tmpfile.name) as f:
@@ -135,29 +123,29 @@ def main():
         if current_name is not None:
             add_stack_to_payload(payload, current_name, current_stack)
 
-    if payload['situation'] == '':
-        print("No changes were made to the Situation field.")
+
+    if payload['comment'] == '':
+        print("No changes were made to the Comment field.")
 
         os.unlink(tmpfile.name)
 
         sys.exit(0)
 
-    url = '{}/observation-api/'.format(config.url)
+    url = '{}/updates/'.format(config.url)
 
     r = requests.post(url, json=payload, auth=HTTPBasicAuth(config.user, config.password))
 
     if r.ok:
-        new_payload=r.json()
+        new_payload = r.json()
 
         print(template_from_payload(new_payload))
 
-        print(GOTOURL.format(url=config.url, id=new_payload['id']).strip())
+        print(GOTOURL.format(url=config.url, id=new_payload['observation']).strip())
 
         os.unlink(tmpfile.name)
 
-        if arguments['--save']:
-            with open(OBSERVATION_FILE_PATH, 'w') as f:
-                f.write(str(new_payload['id']) + "\n")
+        with open(OBSERVATION_FILE_PATH, 'w') as f:
+            f.write(str(new_payload['observation']) + "\n")
     else:
         try:
             print(json.dumps(r.json(), indent=4, sort_keys=True))
