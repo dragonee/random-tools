@@ -9,7 +9,7 @@ Options:
 """
 
 TEMPLATE = """
-# Comment ({pub_date})
+# Comment ({published})
 
 {comment}
 
@@ -41,7 +41,7 @@ from .config.tasks import TasksConfigFile
 def template_from_arguments(arguments):
     return TEMPLATE.format(
         comment='',
-        pub_date=datetime.today().strftime('%Y-%m-%d'),
+        published=datetime.now(),
     ).lstrip()
 
 
