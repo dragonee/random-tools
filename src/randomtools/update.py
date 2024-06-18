@@ -121,14 +121,6 @@ def main():
 
     config = TasksConfigFile()
 
-    try:
-        send_dead_letters(DEAD_LETTER_DIRECTORY, metadata={
-            'auth': HTTPBasicAuth(config.user, config.password)
-        })
-    except Exception as e:
-        print(e)
-        print("Error: Failed to send queue")
-
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md')
 
     template = template_from_arguments(arguments)
@@ -183,6 +175,14 @@ def main():
         os.unlink(tmpfile.name)
 
         sys.exit(0)
+
+    try:
+        send_dead_letters(DEAD_LETTER_DIRECTORY, metadata={
+            'auth': HTTPBasicAuth(config.user, config.password)
+        })
+    except Exception as e:
+        print(e)
+        print("Error: Failed to send queue")
 
     url = '{}/updates/'.format(config.url)
 
