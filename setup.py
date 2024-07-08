@@ -32,6 +32,7 @@ setup(
             'quest = randomtools.quest:main',
             'addtask = randomtools.addtask:main',
             'update = randomtools.update:main',
+            'journal = randomtools.journal:main',
         ],
     }
 )

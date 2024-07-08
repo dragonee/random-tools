@@ -1,14 +1,17 @@
-"""Add update to an observation.
+"""Add journal entry.
 
 Usage: 
-    update [options] [ID]
+    journal [options]
 
 Options:
+    -t THREAD, --thread THREAD  Use this thread [default: Daily]
     -h, --help       Show this message.
     --version        Show version information.
 """
 
 TEMPLATE = """
+> Thread: {thread}
+
 # Comment ({published})
 
 {comment}
@@ -17,7 +20,7 @@ TEMPLATE = """
 
 GOTOURL = """
 See more:
-- {url}/observations/{id}/
+- {url}/
 """
 
 import json, os, re, sys
@@ -44,6 +47,7 @@ def template_from_arguments(arguments):
     return TEMPLATE.format(
         comment='',
         published=datetime.now(),
+        thread=arguments['--thread'],
     ).lstrip()
 
 
@@ -51,34 +55,24 @@ def template_from_payload(payload):
     return TEMPLATE.format(**payload).lstrip()
 
 title_re = re.compile(r'^# (Comment)')
-meta_re = re.compile(r'^> (Nonexistent): (.*)$')
+meta_re = re.compile(r'^> (Thread): (.*)$')
 
 
 def add_meta_to_payload(payload, name, item):
-    pass
+    payload[name.lower()] = item
 
 def add_stack_to_payload(payload, name, lines):
     payload[name.lower()] = ''.join(lines).strip()
 
 
-OBSERVATION_FILE_PATH = os.path.expanduser(os.path.join('~', '.observation_id'))
-
 DEAD_LETTER_DIRECTORY = os.path.expanduser(os.path.join('~', '.tasks', 'queue'))
 
-def get_saved_observation_id():
-    try:
-        with open(OBSERVATION_FILE_PATH) as f:
-            return int(f.read(32).strip())
-    except FileNotFoundError as e:
-        pass
-    
-    return None
 
 def queue_dead_letter(payload, path, metadata):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    basename = "{}".format(datetime.now().strftime("%Y-%m-%d_%H%M%S_update"))
+    basename = "{}".format(datetime.now().strftime("%Y-%m-%d_%H%M%S_journal"))
     name = f'{basename}.json'
     i = 0
 
@@ -125,13 +119,6 @@ def main():
 
     template = template_from_arguments(arguments)
 
-    observation_id = arguments['ID'] or get_saved_observation_id()
-
-    if not observation_id:
-        print("Error: No Observation ID was given.")
-
-        sys.exit(1)
-
     with tmpfile:
         tmpfile.write(template)
     
@@ -146,7 +133,7 @@ def main():
 
     payload = {
         'comment': None,
-        'observation': observation_id
+        'thread': arguments['--thread']
     }
 
     with open(tmpfile.name) as f:
@@ -184,7 +171,7 @@ def main():
         print(e)
         print("Error: Failed to send queue")
 
-    url = '{}/updates/'.format(config.url)
+    url = '{}/journal/'.format(config.url)
 
     try:
         r = requests.post(url, json=payload, auth=HTTPBasicAuth(config.user, config.password))
@@ -204,12 +191,9 @@ def main():
 
         print(template_from_payload(new_payload))
 
-        print(GOTOURL.format(url=config.url, id=new_payload['observation']).strip())
+        print(GOTOURL.format(url=config.url).strip())
 
         os.unlink(tmpfile.name)
-
-        with open(OBSERVATION_FILE_PATH, 'w') as f:
-            f.write(str(new_payload['observation']) + "\n")
     else:
         try:
             print(json.dumps(r.json(), indent=4, sort_keys=True))
