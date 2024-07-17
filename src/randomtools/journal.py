@@ -4,6 +4,7 @@ Usage:
     journal [options]
 
 Options:
+    -o               Also save a copy as observation.
     -t THREAD, --thread THREAD  Use this thread [default: Daily]
     -h, --help       Show this message.
     --version        Show version information.
@@ -27,7 +28,7 @@ import json, os, re, sys
 
 from docopt import docopt
 
-from datetime import datetime
+from datetime import datetime, date
 
 import tempfile
 
@@ -175,6 +176,28 @@ def main():
 
     try:
         r = requests.post(url, json=payload, auth=HTTPBasicAuth(config.user, config.password))
+
+        if arguments['-o']:
+            url = '{}/observation-api/'.format(config.url)
+
+            new_payload = {
+                'situation': payload['comment'],
+                'thread': arguments['--thread'],
+                'pub_date': str(date.today()),
+                'type': 'observation',
+            }
+
+            r2 = requests.post(url, json=new_payload, auth=HTTPBasicAuth(config.user, config.password))
+
+            if r2.ok:
+                print("Saved observation under id {}".format(r2.json()['id']))
+            else:
+                try:
+                    print(json.dumps(r2.json(), indent=4, sort_keys=True))
+                except json.decoder.JSONDecodeError:
+                    print("HTTP {}\n{}".format(r2.status_code, r2.text))
+        
+
     except ConnectionError:
         name = queue_dead_letter(payload, path=DEAD_LETTER_DIRECTORY, metadata={
             'url': url,            
