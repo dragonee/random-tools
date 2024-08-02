@@ -12,8 +12,9 @@ Options:
 
 TEMPLATE = """
 > Thread: {thread}
+> Published: {published}
 
-# Comment ({published})
+# Comment
 
 {comment}
 
@@ -56,7 +57,7 @@ def template_from_payload(payload):
     return TEMPLATE.format(**payload).lstrip()
 
 title_re = re.compile(r'^# (Comment)')
-meta_re = re.compile(r'^> (Thread): (.*)$')
+meta_re = re.compile(r'^> (Thread|Published): (.*)$')
 
 
 def add_meta_to_payload(payload, name, item):
@@ -134,7 +135,8 @@ def main():
 
     payload = {
         'comment': None,
-        'thread': arguments['--thread']
+        'thread': arguments['--thread'],
+        'published': datetime.now(),
     }
 
     with open(tmpfile.name) as f:
