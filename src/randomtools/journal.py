@@ -13,7 +13,7 @@ Options:
 TEMPLATE = """
 > Thread: {thread}
 > Published: {published}
-
+{notes}
 # Comment
 
 {comment}
@@ -45,16 +45,20 @@ from pathlib import Path
 from .config.tasks import TasksConfigFile
 
 
-def template_from_arguments(arguments):
+def template_from_arguments(arguments, quick_notes):
+    if len(quick_notes) > 0:
+        quick_notes = "\n- {}\n".format(quick_notes)
+
     return TEMPLATE.format(
         comment='',
         published=datetime.now(),
         thread=arguments['--thread'],
+        notes=quick_notes,
     ).lstrip()
 
 
 def template_from_payload(payload):
-    return TEMPLATE.format(**payload).lstrip()
+    return TEMPLATE.format(quick_notes='', **payload).lstrip()
 
 title_re = re.compile(r'^# (Comment)')
 meta_re = re.compile(r'^> (Thread|Published): (.*)$')
@@ -112,14 +116,40 @@ def send_dead_letters(path, metadata):
         for name in sorted(files):
             send_dead_letter(os.path.join(root, name), metadata)
 
+
+def quick_note_to_string(note):
+    return "\n  ".join(note['note'].split("\n"))
+
+
+def get_quick_notes_as_string(config):
+    try:
+        url = '{}/quick-notes/'.format(config.url)
+
+        r = requests.get(url, auth=HTTPBasicAuth(config.user, config.password))
+
+        if not r.ok:
+            return ''
+        
+        j = r.json()
+
+        return "\n- ".join(map(quick_note_to_string, j['results']))
+        
+    except ConnectionError:
+        pass
+
+    return ''
+
+
 def main():
-    arguments = docopt(__doc__, version='1.0.2')
+    arguments = docopt(__doc__, version='1.1')
 
     config = TasksConfigFile()
 
+    quick_notes = get_quick_notes_as_string(config)
+
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md')
 
-    template = template_from_arguments(arguments)
+    template = template_from_arguments(arguments, quick_notes)
 
     with tmpfile:
         tmpfile.write(template)
