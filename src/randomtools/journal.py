@@ -58,7 +58,7 @@ def template_from_arguments(arguments, quick_notes):
 
 
 def template_from_payload(payload):
-    return TEMPLATE.format(quick_notes='', **payload).lstrip()
+    return TEMPLATE.format(notes='', **payload).lstrip()
 
 title_re = re.compile(r'^# (Comment)')
 meta_re = re.compile(r'^> (Thread|Published): (.*)$')
