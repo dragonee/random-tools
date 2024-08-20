@@ -89,59 +89,6 @@ maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
 
-## Tasks collector support
-
-### observation (1.0.1)
-
-```
-Add an observation.
-
-Usage: 
-    observation [options]
-
-Options:
-    --date DATE      Use specific date.
-    --thread THREAD  Use specific thread [default: big-picture].
-    --type TYPE      Choose type [default: observation].
-    -h, --help       Show this message.
-    --version        Show version information.
-```
-
-### boardmd (1.0)
-
-```
-Dump a board to markdown.
-
-Usage: 
-    boardmd [options]
-
-Options:
-    --thread THREAD  Use specific thread [default: big-picture].
-    --enumerate      Add numberic enumeration to points (e.g. 1.2.4.)
-    -h, --help       Show this message.
-    --version        Show version information.
-```
-
-### observationdump (1.0.3)
-
-```
-Dump observations to markdown files.
-
-Usage: 
-    observationdump [options] PATH
-
-Options:
-    --open           Get only open observations.
-    --closed         Get only closed observations.
-    -d DATE_FROM, --from FROM  Dump from specific date.
-    -D DATE_TO, --to DATE_TO   Dump to specific date.
-    -f, --force      Overwrite existing files.
-    --pk ID          Dump object with specific ID.
-    --year YEAR      Dump specific year.
-    -h, --help       Show this message.
-    --version        Show version information.
-```
-
 ## Markdown utilities
 
 ### onelinesummary (1.0)
