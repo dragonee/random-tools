@@ -91,7 +91,7 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Markdown utilities
 
-### onelinesummary (1.0)
+### onelinesummary (1.0.1)
 
 ```
 Create one-line summary of all documents in a directory with links.
@@ -100,6 +100,7 @@ Usage:
     onelinesummary [options] PATH
 
 Options:
+    -p, --pattern  Pattern to match files [default: *.md]
     -h, --help  Show this message.
     --version   Show version information.
 ```
