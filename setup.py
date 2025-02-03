@@ -11,12 +11,13 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
     ],
-    packages=('randomtools',),
+    packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', ],
+    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
+            'evenings = randomtools.calendar_availability:main',
             'copiesfromcsv = randomtools.copiesfromcsv:main',
             'sodamatcher = randomtools.sodamatcher:main',
             'movetoguids = randomtools.movetoguids:main',
