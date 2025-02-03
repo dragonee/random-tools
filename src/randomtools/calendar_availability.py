@@ -5,8 +5,8 @@ Usage:
 
 Options:
     -S, --stats           Show statistics.
-    -T, --type TYPE       Type of evenings to check. free/busy/all [default: free].
-    -a, --all             Alias for --type all.
+    -a, --all             Show all evenings.
+    -b, --busy            Show busy evenings.
     -d, --days DAYS       Number of days to check [default: 14].
     -s, --start DATE      Start date
     --hour-from HOUR      Start hour [default: 18].
@@ -186,17 +186,13 @@ def main():
         print_stats(days)
         return
 
-    if arguments['--all']:
-        arguments['--type'] = 'all'
-
-    if arguments['--type'] == 'free':
-        days = list(filter(lambda d: d.is_available(), days))
-    elif arguments['--type'] == 'busy':
+    if arguments['--busy']:
         days = list(filter(lambda d: not d.is_available(), days))
-
+    elif not arguments['--all']:
+        days = list(filter(lambda d: d.is_available(), days))
 
     for day in days:
-        if arguments['--type'] == 'all':
+        if arguments['--all']:
             print(f"{day.date.strftime('%Y-%m-%d (%A)')} - {day.status()}")
         else:
             print(f"{day.date.strftime('%Y-%m-%d (%A)')}")
@@ -204,6 +200,6 @@ def main():
         for event in day.events:
             print(f"  {event.start.strftime('%H:%M')} - {event.end.strftime('%H:%M')}: {event.summary}")
         
-        if arguments['--type'] == 'all' or arguments['--type'] == 'busy':
+        if arguments['--all'] or arguments['--busy']:
             print()
 

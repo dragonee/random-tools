@@ -1,4 +1,8 @@
-# Random tools I make
+# Random tools I made
+
+## Calendar availability
+
+[$ make-readme -h 3 evenings]
 
 ## CSV/JSON tools
 

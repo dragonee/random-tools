@@ -1,4 +1,26 @@
-# Random tools I make
+# Random tools I made
+
+## Calendar availability
+
+### evenings (1.0)
+
+```
+Check if I'm free in the evening.
+
+Usage: 
+    evenings [options]
+
+Options:
+    -S, --stats           Show statistics.
+    -a, --all             Show all evenings.
+    -b, --busy            Show busy evenings.
+    -d, --days DAYS       Number of days to check [default: 14].
+    -s, --start DATE      Start date
+    --hour-from HOUR      Start hour [default: 18].
+    --hour-to HOUR        End hour [default: 22].
+    -h, --help       Show this message.
+    --version        Show version information.
+```
 
 ## CSV/JSON tools
 
@@ -100,7 +122,7 @@ Usage:
     onelinesummary [options] PATH
 
 Options:
-    -p, --pattern  Pattern to match files [default: *.md]
+    -p, --pattern PATTERN  Pattern to match files [default: *.md]
     -h, --help  Show this message.
     --version   Show version information.
 ```
