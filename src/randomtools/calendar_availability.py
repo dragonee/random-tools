@@ -99,9 +99,16 @@ def authorize(
 
 
 def print_stats(days: List[Day]):
-    print(f"Total days: {len(days)}")
-    print(f"Free days: {len(list(filter(lambda d: d.is_available(), days)))}")
-    print(f"Busy days: {len(list(filter(lambda d: not d.is_available(), days)))}")
+    total = len(days)
+    free = len(list(filter(lambda d: d.is_available(), days)))
+    busy = total - free
+    percentage = (busy / total) * 100 if total > 0 else 0
+    
+    print("{free} free out of {total} days ({percentage:.1f}% filled)".format(
+        total=total,
+        free=free,
+        percentage=percentage
+    ))
 
 
 def main():
@@ -185,6 +192,8 @@ def main():
     if arguments['--stats']:
         print_stats(days)
         return
+    
+    all_days = days
 
     if arguments['--busy']:
         days = list(filter(lambda d: not d.is_available(), days))
@@ -202,4 +211,6 @@ def main():
         
         if arguments['--all'] or arguments['--busy']:
             print()
+
+    print_stats(all_days)
 
