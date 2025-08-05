@@ -2,7 +2,7 @@
 Generate QR codes from links with automatic file naming.
 
 Usage:
-    qr LINK [FILE]
+    qr LINK [FILE] [options]
     qr -h | --help
     qr --version
 
@@ -11,6 +11,7 @@ Arguments:
     FILE    Output filename (optional, will be slugified from LINK if not provided)
 
 Options:
+    -q --quiet    Quiet mode, suppress output messages.
     -h --help     Show this screen.
     --version     Show version.
 """
@@ -60,6 +61,7 @@ def main():
     
     link = arguments['LINK']
     file_arg = arguments['FILE']
+    quiet = arguments['--quiet']
     
     # Generate filename if not provided
     if file_arg:
@@ -81,7 +83,8 @@ def main():
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
-            print(f"QR code generated: {output_file}")
+            if not quiet:
+                print(f"QR code generated: {output_file}")
         else:
             print(f"Error generating QR code: {result.stderr}", file=sys.stderr)
             sys.exit(1)
