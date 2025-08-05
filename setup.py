@@ -27,6 +27,7 @@ setup(
             'pdfrepeat = randomtools.pdfrepeat:main',
             'usecase = randomtools.usecase:main',
             'wish = randomtools.wish:main',
+            'qr = randomtools.qr:main',
         ],
     }
 )
