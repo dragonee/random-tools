@@ -83,6 +83,26 @@ Options:
     --version   Show version information.
 ```
 
+### qr (1.0.0)
+
+```
+Generate QR codes from links with automatic file naming.
+
+Usage:
+    qr LINK [FILE] [options]
+    qr -h | --help
+    qr --version
+
+Arguments:
+    LINK    The URL or text to encode in the QR code
+    FILE    Output filename (optional, will be slugified from LINK if not provided)
+
+Options:
+    -q --quiet    Quiet mode, suppress output messages.
+    -h --help     Show this screen.
+    --version     Show version.
+```
+
 ## SoDA mail matcher
 
 ### sodamatcher (1.0)

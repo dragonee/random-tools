@@ -16,6 +16,8 @@
 
 [$ make-readme -h 3 movetoguids]
 
+[$ make-readme -h 3 qr]
+
 ## SoDA mail matcher
 
 [$ make-readme -h 3 sodamatcher]
