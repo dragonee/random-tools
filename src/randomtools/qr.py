@@ -56,6 +56,27 @@ def detect_file_type(filename):
         return 'png'
 
 
+def find_available_filename(filename):
+    """Find an available filename by adding incremental numbers if file exists."""
+    path = Path(filename)
+    
+    if not path.exists():
+        return filename
+    
+    # Extract stem and suffix
+    stem = path.stem
+    suffix = path.suffix
+    parent = path.parent
+    
+    # Try incremental numbers
+    counter = 1
+    while True:
+        new_filename = parent / f"{stem}-{counter}{suffix}"
+        if not new_filename.exists():
+            return str(new_filename)
+        counter += 1
+
+
 def main():
     arguments = docopt(__doc__, version='1.0.0')
     
@@ -71,6 +92,9 @@ def main():
         if not slug:
             slug = 'qr-code'
         output_file = f"{slug}.png"
+    
+    # Find available filename to avoid overwriting
+    output_file = find_available_filename(output_file)
     
     # Detect file type
     file_type = detect_file_type(output_file)
