@@ -202,6 +202,32 @@ Configuration:
     api_token = your-api-token
 ```
 
+## Git Tools
+
+### push (1.0)
+
+```
+Git repository batch processor.
+
+Usage:
+    push [<commit_message>] [--path=<directory>]
+    push (-h | --help)
+    push --version
+
+Arguments:
+    <commit_message>  Commit message to use for all repositories.
+
+Options:
+    -h --help             Show this screen.
+    --version             Show version.
+    --path=<directory>    Directory to search for repositories (defaults to current directory).
+
+Examples:
+    push                           # Use default message "docs: update on <date>"
+    push "feat: add new feature"   # Use custom commit message
+    push --path=/home/user/code    # Search in specific directory
+```
+
 ## Markdown utilities
 
 ### onelinesummary (1.0.1)
