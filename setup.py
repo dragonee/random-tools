@@ -28,6 +28,8 @@ setup(
             'usecase = randomtools.usecase:main',
             'wish = randomtools.wish:main',
             'qr = randomtools.qr:main',
+            'jira-dashboard-dates = randomtools.jira_dates:main',
+            'jira-dashboard = randomtools.jira_dashboard:main',
         ],
     }
 )

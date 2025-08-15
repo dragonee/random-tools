@@ -31,6 +31,12 @@ maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
 
+## Jira Tools
+
+[$ make-readme -h 3 jira-dashboard-dates]
+
+[$ make-readme -h 3 jira-dashboard]
+
 ## Markdown utilities
 
 [$ make-readme -h 3 onelinesummary]
