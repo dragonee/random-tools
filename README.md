@@ -131,6 +131,77 @@ maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
 
+## Jira Tools
+
+### jira-dashboard-dates (1.0)
+
+```
+Jira Time Tracker auto-updater.
+
+Usage:
+    jira-dates [--date=<date>] [--format=<fmt>] [--dashboard=<id>] [--month-string=<str>] [--week-string=<str>]
+    jira-dates (-h | --help)
+
+Options:
+    -h --help              Show this screen.
+    --date=<date>          Reference date for calculations (YYYY-MM-DD format, defaults to today).
+    --format=<fmt>         Date format [default: %Y-%m-%d].
+    --dashboard=<id>       Dashboard ID (overrides config).
+    --month-string=<str>   String to detect month gadgets (overrides config, defaults to "month").
+    --week-string=<str>    String to detect week gadgets (overrides config, defaults to "week").
+
+Examples:
+    jira-dates                                    # Auto-update all time tracker gadgets to current periods
+    jira-dates --date=2025-07-15                 # Use July 15, 2025 as reference date
+    jira-dates --dashboard=123                    # Update specific dashboard
+    jira-dates --month-string="monthly"          # Use "monthly" to detect month gadgets
+    jira-dates --week-string="weekly"            # Use "weekly" to detect week gadgets
+
+Configuration:
+    Create ~/.jira/config.ini with:
+    [Jira]
+    domain = your-domain
+    email = your-email@example.com
+    api_token = your-api-token
+    dashboard_id = 12345
+    month_string = month  # Optional, defaults to "month"
+    week_string = week    # Optional, defaults to "week"
+```
+
+### jira-dashboard (1.0)
+
+```
+Search Jira dashboards and list dashboard gadgets to find gadget IDs.
+
+Usage:
+    jira-dashboard [<dashboard_id>] [--filter=<type>] [--search=<query>] [--raw] [--properties=<gadget_id>] [--config=<gadget_id>]
+    jira-dashboard (-h | --help)
+
+Options:
+    -h --help                Show this screen.
+    --filter=<type>          Filter by gadget type (e.g., "TimeTrackingGadget").
+    --search=<query>         Search dashboards by name/description.
+    --raw                    Show raw JSON response.
+    --properties=<gadget_id> Show properties for specific gadget ID.
+    --config=<gadget_id>     Show gadgetConfig property value for specific gadget ID.
+
+Examples:
+    jira-dashboard                                 # List all available dashboards
+    jira-dashboard 12345                           # List all gadgets in dashboard 12345
+    jira-dashboard 12345 --filter=TimeTrackingGadget  # Filter time tracking gadgets
+    jira-dashboard --search="My Dashboard"         # Search for dashboards by name
+    jira-dashboard 12345 --raw                     # Show raw JSON response
+    jira-dashboard 12345 --properties=11579       # Show properties for gadget 11579
+    jira-dashboard 12345 --config=11579           # Show gadgetConfig for gadget 11579
+
+Configuration:
+    Create ~/.jira/config.ini with:
+    [Jira]
+    domain = your-domain
+    email = your-email@example.com
+    api_token = your-api-token
+```
+
 ## Markdown utilities
 
 ### onelinesummary (1.0.1)
