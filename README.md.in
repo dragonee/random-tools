@@ -33,6 +33,8 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Jira Tools
 
+[$ make-readme -h 3 jira]
+
 [$ make-readme -h 3 jira-dashboard-dates]
 
 [$ make-readme -h 3 jira-dashboard]

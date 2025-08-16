@@ -133,6 +133,33 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 ## Jira Tools
 
+### jira (1.0)
+
+```
+Jira worklog management tool with shell-like interface.
+
+Usage: 
+    jira [options]
+
+Options:
+    -h, --help       Show this message.
+    --version        Show version information.
+
+Commands in shell:
+    list                     - Show current day's worklogs and saved issues
+    save ISSUE              - Add issue to saved list
+    exclude ISSUE           - Add issue to excluded list
+    remove ISSUE            - Remove issue from both saved and excluded lists
+    create PROJECT DESC     - Create new issue in project
+    update [DAYS]           - Refresh issues cache (defaults to 7 days)
+    help                    - Show this help
+    
+Issue logging:
+    ISSUE TIME [DESC]       - Log time to issue (e.g., "ABC-123 2h" or "DEV-456 1.5h Fixed login bug")
+    
+Quit by pressing Ctrl+D or Ctrl+C.
+```
+
 ### jira-dashboard-dates (1.0)
 
 ```
