@@ -38,8 +38,9 @@ import sys
 
 try:
     import readline
+    READLINE_AVAILABLE = True
 except ImportError:
-    pass
+    READLINE_AVAILABLE = False
 
 from .config.jira import JiraConfigFile
 
@@ -50,10 +51,49 @@ CACHE_DIR = Path.home() / '.jira' / 'cache'
 SAVED_ISSUES_FILE = CACHE_DIR / 'saved_issues.json'
 EXCLUDED_ISSUES_FILE = CACHE_DIR / 'excluded_issues.json'
 RECENT_ISSUES_FILE = CACHE_DIR / 'recent_issues.json'
+HISTORY_FILE = CACHE_DIR / 'history'
 
 def ensure_cache_dir():
     """Ensure cache directory exists."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def setup_readline():
+    """Setup readline with history file."""
+    if not READLINE_AVAILABLE:
+        return
+    
+    ensure_cache_dir()
+    
+    # Set up history file
+    history_file = str(HISTORY_FILE)
+    
+    try:
+        # Load existing history
+        readline.read_history_file(history_file)
+    except FileNotFoundError:
+        # History file doesn't exist yet, that's okay
+        pass
+    except Exception:
+        # Other errors reading history, continue without it
+        pass
+    
+    # Set maximum history size
+    readline.set_history_length(1000)
+    
+    # Save history on exit
+    import atexit
+    atexit.register(save_readline_history, history_file)
+
+def save_readline_history(history_file):
+    """Save readline history to file."""
+    if not READLINE_AVAILABLE:
+        return
+    
+    try:
+        readline.write_history_file(history_file)
+    except Exception:
+        # Ignore errors when saving history
+        pass
 
 def load_json_set(file_path):
     """Load a set from JSON file."""
@@ -863,6 +903,9 @@ def run_single_command(config):
 def main():
     """Main entry point for jira command."""
     arguments = docopt(__doc__, version=VERSION)
+    
+    # Setup readline with persistent history
+    setup_readline()
     
     try:
         config = JiraConfigFile()
