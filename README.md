@@ -160,6 +160,59 @@ Issue logging:
 Quit by pressing Ctrl+D or Ctrl+C.
 ```
 
+### jira-calendar (1.0)
+
+```
+Jira + Google Calendar integration tool.
+
+Usage: 
+    jira-calendar PROJECT_OR_ISSUE [options] TIME DAY
+    jira-calendar PROJECT_OR_ISSUE [options] TIME_START TIME_END DAY
+
+Arguments:
+    PROJECT_OR_ISSUE    Either a project key (e.g., MEET) or existing issue (e.g., ABC-123)
+
+Options:
+    -t TIME, --duration=TIME   Meeting duration [default: 1h]
+    -s SUMMARY, --summary=SUMMARY  Issue summary for new issue [default: Meeting]
+    -c CALENDAR, --calendar=CALENDAR  Calendar name or ID to use (overrides config)
+    -m TITLE, --meeting=TITLE  Title of the calendar event (overrides default)
+    -d DESC, --description=DESC  Additional description for the calendar event
+    -h, --help                 Show this message.
+    --version                  Show version information.
+
+Examples:
+    jira-calendar MEET 14:30 Friday                    # Create issue in MEET project, 1h meeting
+    jira-calendar ABC-123 14:30 Friday                 # Use existing issue ABC-123
+    jira-calendar MEET -t 30m 14:30 Friday            # 30min meeting in MEET project
+    jira-calendar MEET 14:30 15:00 Friday             # Meeting from 14:30 to 15:00
+    jira-calendar ABC-123 14:30 "next Friday"         # Use existing issue, next Friday
+    jira-calendar MEET 14:30 2024-12-25               # Meeting on specific date
+    jira-calendar MEET -c work 14:30 Friday           # Use named calendar "work"
+    jira-calendar MEET -m "Team Standup" 14:30 Friday  # Custom meeting title
+    jira-calendar MEET -d "Discuss Q4 planning" 14:30 Friday  # Add description
+
+Configuration:
+    Create ~/.google/config.ini with:
+    
+    [WorkGoogle]
+    token_path = ~/.google/work_token.json
+    credentials_path = ~/.google/work_credentials.json
+    selected_calendar = work
+    
+    [WorkCalendars]
+    work = john.doe@company.com
+    personal = john.doe@gmail.com
+    team = team-calendar@company.com
+    
+    And ~/.jira/config.ini with:
+    
+    [Jira]
+    domain = your-company
+    email = your-email@company.com
+    api_token = your-jira-api-token
+```
+
 ### jira-dashboard-dates (1.0)
 
 ```
