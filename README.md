@@ -308,6 +308,35 @@ Examples:
     push --path=/home/user/code    # Search in specific directory
 ```
 
+### github-synchronize (1.0)
+
+```
+GitHub repository synchronization tool for managing multiple repositories.
+
+Usage: 
+    github-synchronize [options]
+
+Options:
+    -m MESSAGE, --message=MESSAGE  Default commit message (defaults to current date)
+    -h, --help                     Show this message.
+    --version                      Show version information.
+
+Description:
+    Iterates through all 1st level subdirectories of the current directory
+    and synchronizes git repositories. For each repository:
+    
+    1. Checks if on main branch (skips if not)
+    2. Checks for changes and displays git status
+    3. Offers synchronization strategies:
+       a) Commit + pull with rebase + push
+       b) Stash + pull + stash pop
+    4. Stops on rebase conflicts or stash pop conflicts
+
+Examples:
+    github-synchronize                                    # Use default commit message
+    github-synchronize -m "feat: add new research notes"  # Custom commit message
+```
+
 ## Markdown utilities
 
 ### onelinesummary (1.0.1)

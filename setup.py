@@ -33,6 +33,7 @@ setup(
             'jira = randomtools.jira:main',
             'push = randomtools.push:main',
             'jira-calendar = randomtools.jira_calendar:main',
+            'github-synchronize = randomtools.github_synchronize:main',
         ],
     }
 )
