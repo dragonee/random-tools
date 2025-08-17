@@ -13,7 +13,7 @@ setup(
     ],
     packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools', 'dateparser'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
@@ -32,6 +32,7 @@ setup(
             'jira-dashboard = randomtools.jira_dashboard:main',
             'jira = randomtools.jira:main',
             'push = randomtools.push:main',
+            'jira-calendar = randomtools.jira_calendar:main',
         ],
     }
 )
