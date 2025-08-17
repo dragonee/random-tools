@@ -14,6 +14,7 @@ Commands in shell:
     remove ISSUE            - Remove issue from both saved and excluded lists
     create PROJECT DESC     - Create new issue in project
     update [DAYS]           - Refresh issues cache (defaults to 7 days)
+    calendar ARGS           - Create calendar event (calls jira-calendar with args)
     help                    - Show this help
     
 Issue logging:
@@ -26,6 +27,7 @@ import json
 import os
 import datetime
 import re
+import subprocess
 from pathlib import Path
 from collections.abc import Iterable
 
@@ -673,6 +675,38 @@ def update_cache(args, config):
         with open(RECENT_ISSUES_FILE, 'w') as f:
             json.dump(cache_data, f, indent=2)
 
+def calendar_command(args, config):
+    """Call jira-calendar tool with the provided arguments."""
+    if not args:
+        print("Usage: calendar PROJECT_OR_ISSUE [options] TIME DAY")
+        print("Example: calendar MEET 14:30 Friday")
+        print("Example: calendar ABC-123 -m 'Bug Review' 14:30 tomorrow")
+        return
+    
+    # Build the jira-calendar command
+    cmd = ['jira-calendar'] + args
+    
+    try:
+        # Run jira-calendar as a subprocess
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        
+        # Print the output from jira-calendar
+        if result.stdout:
+            print(result.stdout.strip())
+        if result.stderr:
+            print(result.stderr.strip(), file=sys.stderr)
+            
+    except subprocess.CalledProcessError as e:
+        print(f"jira-calendar failed with exit code {e.returncode}")
+        if e.stdout:
+            print(e.stdout.strip())
+        if e.stderr:
+            print(e.stderr.strip(), file=sys.stderr)
+    except FileNotFoundError:
+        print("Error: jira-calendar command not found. Make sure it's installed and in your PATH.")
+    except Exception as e:
+        print(f"Error calling jira-calendar: {e}")
+
 
 # Command mapping
 commands = {
@@ -682,6 +716,7 @@ commands = {
     'remove': remove_issue,
     'create': create_issue,
     'update': update_cache,
+    'calendar': calendar_command,
     'help': help_command,
 }
 
