@@ -140,61 +140,134 @@ def help_command(*args):
     """Show help message."""
     print(HELP.format(commands=list_to_points(commands.keys())))
 
-def get_timelogs_for_time_period(config, start_date, end_date):
-    """Get worklogs for a specific time period."""
+def find_issues_with_worklogs_in_period(config, start_date, end_date):
+    """Find issues that have worklogs by the current user in the specified date range."""
     start_str = start_date.strftime('%Y-%m-%d')
     end_str = end_date.strftime('%Y-%m-%d')
     
-    # JQL to find worklogs for the current user in the date range
+    # JQL to find issues where current user has logged work in the date range
     jql = f"worklogAuthor = currentUser() AND worklogDate >= '{start_str}' AND worklogDate <= '{end_str}'"
     
     url = f"{config.base_url}/rest/api/3/search"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {"Accept": "application/json"}
     
-    params = {
-        "jql": jql,
-        "fields": "key,summary,worklog",
-        "expand": "worklog",
-        "maxResults": 100
-    }
+    all_issues = []
+    start_at = 0
+    max_results = 100
     
     try:
-        response = requests.get(url, headers=headers, auth=auth, params=params)
-        
-        if response.status_code == 200:
-            data = response.json()
-            worklogs = []
+        while True:
+            params = {
+                "jql": jql,
+                "fields": "key,summary",
+                "startAt": start_at,
+                "maxResults": max_results
+            }
             
-            for issue in data.get('issues', []):
-                issue_key = issue['key']
-                issue_summary = issue['fields']['summary']
+            response = requests.get(url, headers=headers, auth=auth, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
                 
-                # Filter worklogs for the date range and user
-                for worklog in issue['fields']['worklog']['worklogs']:
+                for issue in data.get('issues', []):
+                    all_issues.append({
+                        'key': issue['key'],
+                        'summary': issue['fields']['summary']
+                    })
+                
+                # Check if we have more results
+                total = data.get('total', 0)
+                if start_at + max_results >= total:
+                    break
+                
+                start_at += max_results
+            else:
+                print(f"Failed to search for issues. Status: {response.status_code}")
+                return []
+        
+        return all_issues
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to Jira API: {e}")
+        return []
+
+def get_issue_worklogs_in_period(config, issue_key, start_date, end_date):
+    """Get worklogs for a specific issue in the specified date range."""
+    url = f"{config.base_url}/rest/api/3/issue/{issue_key}/worklog"
+    auth = HTTPBasicAuth(config.email, config.api_token)
+    headers = {"Accept": "application/json"}
+    
+    all_worklogs = []
+    start_at = 0
+    max_results = 100
+    
+    try:
+        while True:
+            params = {
+                "startAt": start_at,
+                "maxResults": max_results
+            }
+            
+            response = requests.get(url, headers=headers, auth=auth, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                for worklog in data.get('worklogs', []):
                     worklog_date = datetime.datetime.strptime(worklog['started'][:10], '%Y-%m-%d').date()
-                    if start_date <= worklog_date <= end_date and worklog['author']['emailAddress'] == config.email:
+                    
+                    # Filter by date range and current user
+                    if (start_date <= worklog_date <= end_date and 
+                        worklog.get('author', {}).get('emailAddress') == config.email):
+                        
                         # Extract comment text from ADF format
                         comment_text = extract_text_from_adf(worklog.get('comment', ''))
                         
-                        worklogs.append({
-                            'issue': issue_key,
-                            'summary': issue_summary,
+                        all_worklogs.append({
                             'timeSpent': worklog['timeSpent'],
                             'timeSpentSeconds': worklog['timeSpentSeconds'],
                             'comment': comment_text,
                             'started': worklog['started'],
                             'date': worklog_date
                         })
-            
-            return worklogs
-        else:
-            print(f"Failed to fetch worklogs. Status: {response.status_code}")
-            return []
+                
+                # Check if we have more results
+                total = data.get('total', 0)
+                if start_at + max_results >= total:
+                    break
+                
+                start_at += max_results
+            else:
+                print(f"Failed to fetch worklogs for {issue_key}. Status: {response.status_code}")
+                return []
+        
+        return all_worklogs
             
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Jira API: {e}")
         return []
+
+def get_timelogs_for_time_period(config, start_date, end_date):
+    """Get worklogs for a specific time period."""
+    # First, find all issues with worklogs in the period
+    issues = find_issues_with_worklogs_in_period(config, start_date, end_date)
+    
+    worklogs = []
+    
+    # Then, get detailed worklogs for each issue
+    for issue in issues:
+        issue_worklogs = get_issue_worklogs_in_period(config, issue['key'], start_date, end_date)
+        
+        # Add issue info to each worklog
+        for worklog in issue_worklogs:
+            worklog.update({
+                'issue': issue['key'],
+                'summary': issue['summary']
+            })
+            worklogs.append(worklog)
+    
+    return worklogs
 
 def get_daily_worklogs(config, date=None):
     """Get worklogs for a specific date (defaults to today)."""
@@ -675,38 +748,6 @@ def update_cache(args, config):
         with open(RECENT_ISSUES_FILE, 'w') as f:
             json.dump(cache_data, f, indent=2)
 
-def calendar_command(args, config):
-    """Call jira-calendar tool with the provided arguments."""
-    if not args:
-        print("Usage: calendar PROJECT_OR_ISSUE [options] TIME DAY")
-        print("Example: calendar MEET 14:30 Friday")
-        print("Example: calendar ABC-123 -m 'Bug Review' 14:30 tomorrow")
-        return
-    
-    # Build the jira-calendar command
-    cmd = ['jira-calendar'] + args
-    
-    try:
-        # Run jira-calendar as a subprocess
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        
-        # Print the output from jira-calendar
-        if result.stdout:
-            print(result.stdout.strip())
-        if result.stderr:
-            print(result.stderr.strip(), file=sys.stderr)
-            
-    except subprocess.CalledProcessError as e:
-        print(f"jira-calendar failed with exit code {e.returncode}")
-        if e.stdout:
-            print(e.stdout.strip())
-        if e.stderr:
-            print(e.stderr.strip(), file=sys.stderr)
-    except FileNotFoundError:
-        print("Error: jira-calendar command not found. Make sure it's installed and in your PATH.")
-    except Exception as e:
-        print(f"Error calling jira-calendar: {e}")
-
 
 # Command mapping
 commands = {
@@ -716,7 +757,6 @@ commands = {
     'remove': remove_issue,
     'create': create_issue,
     'update': update_cache,
-    'calendar': calendar_command,
     'help': help_command,
 }
 
