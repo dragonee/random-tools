@@ -15,6 +15,8 @@ Commands in shell:
     create PROJECT DESC     - Create new issue in project
     update [DAYS]           - Refresh issues cache (defaults to 7 days)
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
+    set DATE                - Set working date (YYYY-MM-DD, 'Mon', '3 days ago')
+    reset                   - Reset to today's date
     help                    - Show this help
     
 Issue logging:
@@ -37,6 +39,7 @@ from requests.auth import HTTPBasicAuth
 from more_itertools import repeatfunc, consume
 import shlex
 import sys
+import dateparser
 
 try:
     import readline
@@ -54,6 +57,9 @@ SAVED_ISSUES_FILE = CACHE_DIR / 'saved_issues.json'
 EXCLUDED_ISSUES_FILE = CACHE_DIR / 'excluded_issues.json'
 RECENT_ISSUES_FILE = CACHE_DIR / 'recent_issues.json'
 HISTORY_FILE = CACHE_DIR / 'history'
+
+# Global variable to track current working date
+current_date = None
 
 def ensure_cache_dir():
     """Ensure cache directory exists."""
@@ -270,9 +276,9 @@ def get_timelogs_for_time_period(config, start_date, end_date):
     return worklogs
 
 def get_daily_worklogs(config, date=None):
-    """Get worklogs for a specific date (defaults to today)."""
+    """Get worklogs for a specific date (defaults to working date)."""
     if date is None:
-        date = datetime.date.today()
+        date = get_working_date()
     
     return get_timelogs_for_time_period(config, date, date)
 
@@ -388,6 +394,22 @@ def get_issue_details(config, issue_keys):
 
 def list_worklogs(args, config):
     """List current day's worklogs and saved issues."""
+    # Show current working date context
+    working_date = get_working_date()
+    today = datetime.date.today()
+    
+    if working_date != today:
+        if working_date == today - datetime.timedelta(days=1):
+            date_context = f" (working date: yesterday, {working_date.strftime('%Y-%m-%d')})"
+        else:
+            days_diff = (today - working_date).days
+            if days_diff > 0:
+                date_context = f" (working date: {days_diff} day{'s' if days_diff != 1 else ''} ago, {working_date.strftime('%Y-%m-%d')})"
+            else:
+                date_context = f" (working date: in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}, {working_date.strftime('%Y-%m-%d')})"
+    else:
+        date_context = ""
+    
     # Parse arguments for date options
     if args and args[0] == 'week':
         print("Weekly worklogs:")
@@ -423,8 +445,8 @@ def list_worklogs(args, config):
         else:
             print("  No worklogs found for this week")
     else:
-        print("Today's worklogs:")
-        daily_worklogs = get_daily_worklogs(config)
+        print(f"Today's worklogs{date_context}:")
+        daily_worklogs = get_daily_worklogs(config, working_date)
         
         if daily_worklogs:
             total_seconds = 0
@@ -700,6 +722,64 @@ def get_recent_issues(config, days=7):
         print(f"Error connecting to Jira API: {e}")
         return []
 
+def set_date_command(args, config):
+    """Set the current working date."""
+    global current_date
+    
+    if not args:
+        print("Usage: set DATE")
+        print("Examples:")
+        print("  set 2025-08-18")
+        print("  set Monday")
+        print("  set 3 days ago")
+        print("  set yesterday")
+        return
+    
+    date_str = " ".join(args)
+    
+    try:
+        parsed_date = dateparser.parse(date_str)
+        if parsed_date is None:
+            raise ValueError(f"Unable to parse date: {date_str}")
+        
+        new_date = parsed_date.date()
+        current_date = new_date
+        
+        # Show relative description
+        today = datetime.date.today()
+        if new_date == today:
+            relative = "today"
+        elif new_date == today - datetime.timedelta(days=1):
+            relative = "yesterday"
+        else:
+            days_diff = (today - new_date).days
+            if days_diff > 0:
+                relative = f"{days_diff} day{'s' if days_diff != 1 else ''} ago"
+            else:
+                relative = f"in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
+        
+        print(f"Set working date to {new_date.strftime('%Y-%m-%d')} ({new_date.strftime('%A')}, {relative})")
+        
+        # Show worklogs for the newly set date
+        list_worklogs([], config)
+        
+    except (ValueError, AttributeError) as e:
+        print(f"Error: Unable to parse date '{date_str}'")
+        print("Supported formats:")
+        print("  YYYY-MM-DD (e.g., 2025-08-18)")
+        print("  Weekday names (Monday, Tue, Wed, etc.)")
+        print("  Relative dates (3 days ago, yesterday)")
+
+def reset_date_command(args, config):
+    """Reset to today's date."""
+    global current_date
+    current_date = None
+    print("Reset to today's date")
+
+def get_working_date():
+    """Get the current working date (either set date or today)."""
+    return current_date if current_date is not None else datetime.date.today()
+
 def update_cache(args, config):
     """Refresh issues cache."""
     print("Updating issues cache...")
@@ -757,6 +837,8 @@ commands = {
     'remove': remove_issue,
     'create': create_issue,
     'update': update_cache,
+    'set': set_date_command,
+    'reset': reset_date_command,
     'help': help_command,
 }
 
@@ -893,8 +975,15 @@ def log_time_to_issue(config, text):
         "Content-Type": "application/json"
     }
     
-    # Start time as current time in ISO format
-    started = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.000+0000')
+    # Start time using working date at current time with proper timezone
+    working_date = get_working_date()
+    now = datetime.datetime.now()
+    
+    # Create datetime with local timezone info
+    started_dt = datetime.datetime.combine(working_date, now.time()).replace(tzinfo=now.astimezone().tzinfo)
+    
+    # Format with proper timezone offset (Jira expects ISO format with timezone)
+    started = started_dt.strftime('%Y-%m-%dT%H:%M:%S.000%z')
     
     payload = {
         "timeSpentSeconds": time_spent_seconds,
@@ -928,8 +1017,23 @@ def log_time_to_issue(config, text):
             else:
                 print(f"Logged {time_spent} to \033[1m{issue}\033[0m")
             
-            # Show today's worklogs after successful logging
-            print("\nToday's worklogs:")
+            # Show working date's worklogs after successful logging
+            working_date = get_working_date()
+            today = datetime.date.today()
+            
+            if working_date != today:
+                if working_date == today - datetime.timedelta(days=1):
+                    date_context = f" (working date: yesterday, {working_date.strftime('%Y-%m-%d')})"
+                else:
+                    days_diff = (today - working_date).days
+                    if days_diff > 0:
+                        date_context = f" (working date: {days_diff} day{'s' if days_diff != 1 else ''} ago, {working_date.strftime('%Y-%m-%d')})"
+                    else:
+                        date_context = f" (working date: in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}, {working_date.strftime('%Y-%m-%d')})"
+            else:
+                date_context = ""
+            
+            print(f"\nToday's worklogs{date_context}:")
             daily_worklogs = get_daily_worklogs(config)
             
             if daily_worklogs:
