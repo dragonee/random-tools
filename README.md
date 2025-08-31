@@ -152,6 +152,9 @@ Commands in shell:
     remove ISSUE            - Remove issue from both saved and excluded lists
     create PROJECT DESC     - Create new issue in project
     update [DAYS]           - Refresh issues cache (defaults to 7 days)
+    calendar ARGS           - Create calendar event (calls jira-calendar with args)
+    set DATE                - Set working date (YYYY-MM-DD, 'Mon', '3 days ago')
+    reset                   - Reset to today's date
     help                    - Show this help
     
 Issue logging:
@@ -335,6 +338,58 @@ Description:
 Examples:
     github-synchronize                                    # Use default commit message
     github-synchronize -m "feat: add new research notes"  # Custom commit message
+```
+
+## Clipboard utilities
+
+### copier (1.0)
+
+```
+Copier tool for clipboard management with YAML configuration.
+
+Usage:
+    copier <file>
+    copier -h | --help
+    copier --version
+
+Options:
+    -h, --help       Show this message.
+    --version        Show version information.
+
+Commands in shell:
+    SECTION          - Copy section content to clipboard
+    list             - Show available sections
+    help             - Show this help
+    
+Quit by pressing Ctrl+D or Ctrl+C.
+
+Configuration:
+    Create ~/.info/<file>.yaml with sections. Each section can be:
+    
+    section_name:
+      type: text|file|program
+      (type-specific attributes)
+    
+    Types:
+    - text (default): requires 'content' attribute
+    - file: requires 'file' attribute (path to file)
+    - program: requires 'command' attribute (shell command)
+    
+    Example ~/.info/example.yaml:
+    
+    greeting:
+      type: text
+      content: "Hello, World!"
+    
+    current_dir:
+      type: program
+      command: "pwd"
+    
+    readme:
+      type: file
+      file: "~/README.md"
+    
+    simple_text: "This is just plain text"
 ```
 
 ## Markdown utilities
