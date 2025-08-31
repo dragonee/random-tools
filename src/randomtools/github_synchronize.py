@@ -37,8 +37,14 @@ VERSION = '1.0'
 def run_git_command(directory, command, check=True):
     """Run a git command in the specified directory."""
     try:
+        # Handle command as list or string
+        if isinstance(command, list):
+            cmd_list = ['git'] + command
+        else:
+            cmd_list = ['git'] + command.split()
+        
         result = subprocess.run(
-            ['git'] + command.split(),
+            cmd_list,
             cwd=directory,
             capture_output=True,
             text=True,
@@ -118,7 +124,7 @@ def strategy_commit_rebase_push(directory, commit_message):
         return False
     
     # Commit changes
-    success, stdout, stderr = run_git_command(directory, f'commit -m "{commit_message}"')
+    success, stdout, stderr = run_git_command(directory, ['commit', '-m', commit_message])
     if not success:
         print(f"  ✗ Failed to commit changes: {stderr}")
         return False
