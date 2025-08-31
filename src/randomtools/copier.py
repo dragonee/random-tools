@@ -267,16 +267,38 @@ Quit by pressing Ctrl+D or Ctrl+C.
 """
     print(help_text.strip())
 
-def handle_section(section_name):
-    """Handle copying a section to clipboard."""
+def handle_section(section_input):
+    """Handle copying a section to clipboard with prefix matching."""
     if not current_config:
         print("No configuration loaded")
         return
     
-    if section_name not in current_config:
-        print(f"Section '{section_name}' not found in configuration")
-        print("Use 'list' to see available sections")
-        return
+    # First try exact match
+    if section_input in current_config:
+        section_name = section_input
+    else:
+        # Try prefix matching using functional approach
+        matching_sections = list(filter(lambda key: key.startswith(section_input), current_config.keys()))
+        
+        match len(matching_sections):
+            case 0:
+                print(f"No sections found matching '{section_input}'")
+                print("Use 'list' to see available sections")
+                return
+            case 1:
+                section_name = matching_sections[0]
+                print(f"Matched section: \033[1m{section_name}\033[0m")
+            case _:
+                print(f"Ambiguous prefix '{section_input}' matches multiple sections:")
+                for match in sorted(matching_sections):
+                    section_config = current_config[match]
+                    if isinstance(section_config, dict):
+                        section_type = section_config.get('type', 'text')
+                        print(f"  \033[1m{match}\033[0m ({section_type})")
+                    else:
+                        print(f"  \033[1m{match}\033[0m (text)")
+                print("Please be more specific.")
+                return
     
     section_config = current_config[section_name]
     content = process_section(section_name, section_config)
