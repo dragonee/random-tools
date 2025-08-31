@@ -13,6 +13,7 @@ Commands in shell:
     SECTION          - Copy section content to clipboard
     list             - Show available sections
     config           - Show the raw YAML configuration
+    edit             - Edit the YAML configuration file
     help             - Show this help
     
 Quit by pressing Ctrl+D or Ctrl+C.
@@ -54,6 +55,7 @@ import json
 import os
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 from collections.abc import Iterable
 
@@ -274,6 +276,48 @@ def config_command():
     except Exception as e:
         print(f"Error reading configuration file: {e}")
 
+def find_editor():
+    """Find an available editor, checking EDITOR env, then vim, nano, vi."""
+    # Check EDITOR environment variable first
+    editor = os.environ.get('EDITOR')
+    if editor and shutil.which(editor):
+        return editor
+    
+    # Fallback sequence
+    for candidate in ['vim', 'nano', 'vi']:
+        if shutil.which(candidate):
+            return candidate
+    
+    return None
+
+def edit_command():
+    """Edit the YAML configuration file."""
+    config_path = CONFIG_DIR / f"{current_file}.yaml"
+    
+    editor = find_editor()
+    if not editor:
+        print("No suitable editor found. Please set the EDITOR environment variable.")
+        return
+    
+    try:
+        # Run the editor
+        result = subprocess.run([editor, str(config_path)])
+        
+        if result.returncode == 0:
+            print(f"Editor exited successfully. Reloading configuration...")
+            # Reload the configuration
+            global current_config
+            current_config = load_config(current_file)
+            if current_config:
+                print("Configuration reloaded successfully.")
+            else:
+                print("Warning: Configuration could not be reloaded. Check for syntax errors.")
+        else:
+            print(f"Editor exited with code {result.returncode}")
+            
+    except Exception as e:
+        print(f"Error launching editor: {e}")
+
 def help_command():
     """Show help message."""
     help_text = """
@@ -281,6 +325,7 @@ Available commands:
   SECTION          - Copy section content to clipboard
   list             - Show available sections  
   config           - Show the raw YAML configuration
+  edit             - Edit the YAML configuration file
   help             - Show this help
 
 Quit by pressing Ctrl+D or Ctrl+C.
@@ -343,6 +388,8 @@ def run_single_command():
             list_sections()
         case 'config':
             config_command()
+        case 'edit':
+            edit_command()
         case 'help':
             help_command()
         case cmd if cmd:
