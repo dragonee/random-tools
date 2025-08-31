@@ -12,6 +12,7 @@ Options:
 Commands in shell:
     SECTION          - Copy section content to clipboard
     list             - Show available sections
+    config           - Show the raw YAML configuration
     help             - Show this help
     
 Quit by pressing Ctrl+D or Ctrl+C.
@@ -255,12 +256,31 @@ def list_sections():
         else:
             print(f"  \033[1m{section_name}\033[0m (text)")
 
+def config_command():
+    """Show the raw YAML configuration."""
+    if not current_config:
+        print("No configuration loaded")
+        return
+    
+    config_path = CONFIG_DIR / f"{current_file}.yaml"
+    
+    try:
+        with open(config_path, 'r') as f:
+            content = f.read()
+        print(f"Configuration from {config_path}:")
+        print("-" * 40)
+        print(content)
+        print("-" * 40)
+    except Exception as e:
+        print(f"Error reading configuration file: {e}")
+
 def help_command():
     """Show help message."""
     help_text = """
 Available commands:
   SECTION          - Copy section content to clipboard
   list             - Show available sections  
+  config           - Show the raw YAML configuration
   help             - Show this help
 
 Quit by pressing Ctrl+D or Ctrl+C.
@@ -321,6 +341,8 @@ def run_single_command():
     match command:
         case 'list':
             list_sections()
+        case 'config':
+            config_command()
         case 'help':
             help_command()
         case cmd if cmd:
