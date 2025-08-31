@@ -63,6 +63,7 @@ from docopt import docopt
 import yaml
 import shlex
 from more_itertools import repeatfunc, consume
+from typing import Dict, Any, Union
 
 try:
     import readline
@@ -79,6 +80,61 @@ HISTORY_FILE = CONFIG_DIR / '.copier_history'
 # Global variable to store current config
 current_config = None
 current_file = None
+
+def validate_section(section_name: str, section_data: Any) -> Dict[str, Any]:
+    """Validate a section configuration manually."""
+    # Handle string values (convert to text section)
+    if isinstance(section_data, str):
+        if not section_data.strip():
+            raise ValueError(f"Section '{section_name}': content cannot be empty")
+        return {"type": "text", "content": section_data}
+    
+    # Handle dictionary values
+    if isinstance(section_data, dict):
+        section_type = section_data.get('type', 'text')
+        
+        if section_type == 'text':
+            content = section_data.get('content')
+            if content is None:
+                raise ValueError(f"Section '{section_name}': text sections require 'content' field")
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError(f"Section '{section_name}': content must be a non-empty string")
+            return {"type": "text", "content": content}
+        
+        elif section_type == 'file':
+            file_path = section_data.get('file')
+            if file_path is None:
+                raise ValueError(f"Section '{section_name}': file sections require 'file' field")
+            if not isinstance(file_path, str) or not file_path.strip():
+                raise ValueError(f"Section '{section_name}': file path must be a non-empty string")
+            return {"type": "file", "file": file_path}
+        
+        elif section_type == 'program':
+            command = section_data.get('command')
+            if command is None:
+                raise ValueError(f"Section '{section_name}': program sections require 'command' field")
+            if not isinstance(command, str) or not command.strip():
+                raise ValueError(f"Section '{section_name}': command must be a non-empty string")
+            return {"type": "program", "command": command}
+        
+        else:
+            raise ValueError(f"Section '{section_name}': unknown section type '{section_type}'. Valid types are: text, file, program")
+    
+    raise ValueError(f"Section '{section_name}': must be a string or dictionary, got {type(section_data).__name__}")
+
+def validate_config(config_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate the entire configuration."""
+    if not isinstance(config_data, dict):
+        raise ValueError(f"Configuration must be a dictionary, got {type(config_data).__name__}")
+    
+    if not config_data:
+        raise ValueError("Configuration cannot be empty")
+    
+    validated_config = {}
+    for section_name, section_data in config_data.items():
+        validated_config[section_name] = validate_section(section_name, section_data)
+    
+    return validated_config
 
 def ensure_config_dir():
     """Ensure config directory exists."""
@@ -123,7 +179,7 @@ def save_readline_history(history_file):
         pass
 
 def load_config(file_name):
-    """Load YAML configuration from ~/.info/<file>.yaml"""
+    """Load and validate YAML configuration from ~/.info/<file>.yaml"""
     config_path = CONFIG_DIR / f"{file_name}.yaml"
     
     if not config_path.exists():
@@ -133,8 +189,21 @@ def load_config(file_name):
     
     try:
         with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        return config
+            raw_config = yaml.safe_load(f)
+        
+        if not isinstance(raw_config, dict):
+            print(f"Configuration must be a dictionary, got {type(raw_config)}")
+            return None
+        
+        # Validate the configuration manually
+        try:
+            validated_config = validate_config(raw_config)
+            print(f"✓ Configuration validated successfully ({len(validated_config)} sections)")
+            return validated_config
+        except ValueError as e:
+            print(f"Configuration validation error: {e}")
+            return None
+            
     except yaml.YAMLError as e:
         print(f"Error parsing YAML configuration: {e}")
         return None
