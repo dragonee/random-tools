@@ -25,7 +25,7 @@ Configuration:
     
     Types:
     - text (default): requires 'content' attribute
-    - file: requires 'file' attribute (path to file)
+    - file: requires 'file' attribute (absolute path or relative to ~/.info/)
     - program: requires 'command' attribute (shell command)
     
     Example ~/.info/example.yaml:
@@ -38,9 +38,13 @@ Configuration:
       type: program
       command: "pwd"
     
-    readme:
+    readme_absolute:
       type: file
       file: "~/README.md"
+    
+    readme_relative:
+      type: file
+      file: "snippets/readme.txt"
     
     simple_text: "This is just plain text"
 """
@@ -177,8 +181,16 @@ def process_file_section(section_name, section_config):
         print(f"Error: Section '{section_name}' of type 'file' requires 'file' attribute")
         return None
     
-    # Expand user home directory if needed
-    file_path = Path(file_path).expanduser()
+    # Convert to Path object
+    path = Path(file_path)
+    
+    # Handle different path types
+    if path.is_absolute():
+        # Absolute path - use as-is, but expand ~ if present
+        file_path = path.expanduser()
+    else:
+        # Relative path - make relative to ~/.info directory
+        file_path = CONFIG_DIR / path
     
     try:
         with open(file_path, 'r') as f:
