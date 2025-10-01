@@ -150,50 +150,50 @@ def find_issues_with_worklogs_in_period(config, start_date, end_date):
     """Find issues that have worklogs by the current user in the specified date range."""
     start_str = start_date.strftime('%Y-%m-%d')
     end_str = end_date.strftime('%Y-%m-%d')
-    
+
     # JQL to find issues where current user has logged work in the date range
     jql = f"worklogAuthor = currentUser() AND worklogDate >= '{start_str}' AND worklogDate <= '{end_str}'"
-    
-    url = f"{config.base_url}/rest/api/3/search"
+
+    url = f"{config.base_url}/rest/api/3/search/jql"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {"Accept": "application/json"}
-    
+
     all_issues = []
-    start_at = 0
+    next_page_token = None
     max_results = 100
-    
+
     try:
         while True:
             params = {
                 "jql": jql,
                 "fields": "key,summary",
-                "startAt": start_at,
                 "maxResults": max_results
             }
-            
+
+            if next_page_token:
+                params["nextPageToken"] = next_page_token
+
             response = requests.get(url, headers=headers, auth=auth, params=params)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 for issue in data.get('issues', []):
                     all_issues.append({
                         'key': issue['key'],
                         'summary': issue['fields']['summary']
                     })
-                
-                # Check if we have more results
-                total = data.get('total', 0)
-                if start_at + max_results >= total:
+
+                # Check if we have more results using nextPageToken
+                next_page_token = data.get('nextPageToken')
+                if not next_page_token:
                     break
-                
-                start_at += max_results
             else:
                 print(f"Failed to search for issues. Status: {response.status_code}")
                 return []
-        
+
         return all_issues
-            
+
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Jira API: {e}")
         return []
@@ -345,49 +345,49 @@ def get_issue_details(config, issue_keys):
     """Get issue details (summary, description) for a list of issue keys."""
     if not issue_keys:
         return {}
-    
+
     # Convert to list if it's a set
     if isinstance(issue_keys, set):
         issue_keys = list(issue_keys)
-    
+
     # Build JQL to get multiple issues
     issue_list = ",".join(issue_keys)
     jql = f"key in ({issue_list})"
-    
-    url = f"{config.base_url}/rest/api/3/search"
+
+    url = f"{config.base_url}/rest/api/3/search/jql"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {"Accept": "application/json"}
-    
+
     params = {
         "jql": jql,
         "fields": "key,summary,description",
         "maxResults": len(issue_keys)
     }
-    
+
     try:
         response = requests.get(url, headers=headers, auth=auth, params=params)
-        
+
         if response.status_code == 200:
             data = response.json()
             issue_details = {}
-            
+
             for issue in data.get('issues', []):
                 issue_key = issue['key']
                 summary = issue['fields']['summary']
-                
+
                 # Extract description text from Atlassian Document Format
                 description = extract_text_from_adf(issue['fields'].get('description', ''))
-                
+
                 issue_details[issue_key] = {
                     'summary': summary,
                     'description': description
                 }
-            
+
             return issue_details
         else:
             print(f"Failed to fetch issue details. Status: {response.status_code}")
             return {}
-            
+
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Jira API: {e}")
         return {}
@@ -676,48 +676,60 @@ def get_recent_issues(config, days=7):
     """Get issues from the last N days that the user has worked on."""
     end_date = datetime.date.today()
     start_date = end_date - datetime.timedelta(days=days)
-    
+
     start_str = start_date.strftime('%Y-%m-%d')
     end_str = end_date.strftime('%Y-%m-%d')
-    
+
     # JQL to find issues where user has logged work in the date range
     jql = f"worklogAuthor = currentUser() AND worklogDate >= '{start_str}' AND worklogDate <= '{end_str}'"
-    
-    url = f"{config.base_url}/rest/api/3/search"
+
+    url = f"{config.base_url}/rest/api/3/search/jql"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {"Accept": "application/json"}
-    
-    params = {
-        "jql": jql,
-        "fields": "key,summary,description",
-        "maxResults": 100
-    }
-    
+
+    all_issues = []
+    next_page_token = None
+    max_results = 100
+
     try:
-        response = requests.get(url, headers=headers, auth=auth, params=params)
-        
-        if response.status_code == 200:
-            data = response.json()
-            recent_issues = []
-            
-            for issue in data.get('issues', []):
-                issue_key = issue['key']
-                summary = issue['fields']['summary']
-                
-                # Extract description text from Atlassian Document Format
-                description = extract_text_from_adf(issue['fields'].get('description', ''))
-                
-                recent_issues.append({
-                    'key': issue_key,
-                    'summary': summary,
-                    'description': description
-                })
-            
-            return recent_issues
-        else:
-            print(f"Failed to fetch recent issues. Status: {response.status_code}")
-            return []
-            
+        while True:
+            params = {
+                "jql": jql,
+                "fields": "key,summary,description",
+                "maxResults": max_results
+            }
+
+            if next_page_token:
+                params["nextPageToken"] = next_page_token
+
+            response = requests.get(url, headers=headers, auth=auth, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                for issue in data.get('issues', []):
+                    issue_key = issue['key']
+                    summary = issue['fields']['summary']
+
+                    # Extract description text from Atlassian Document Format
+                    description = extract_text_from_adf(issue['fields'].get('description', ''))
+
+                    all_issues.append({
+                        'key': issue_key,
+                        'summary': summary,
+                        'description': description
+                    })
+
+                # Check if we have more results using nextPageToken
+                next_page_token = data.get('nextPageToken')
+                if not next_page_token:
+                    break
+            else:
+                print(f"Failed to fetch recent issues. Status: {response.status_code}")
+                return []
+
+        return all_issues
+
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Jira API: {e}")
         return []
