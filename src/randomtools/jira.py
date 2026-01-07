@@ -1,11 +1,12 @@
 """Jira worklog management tool with shell-like interface.
 
-Usage: 
+Usage:
     jira [options]
 
 Options:
     -h, --help       Show this message.
     --version        Show version information.
+    -l, --list       Print today's worklogs and exit.
 
 Commands in shell:
     list                     - Show current day's worklogs and saved issues
@@ -1094,23 +1095,41 @@ def run_single_command(config):
 def main():
     """Main entry point for jira command."""
     arguments = docopt(__doc__, version=VERSION)
-    
-    # Setup readline with persistent history
-    setup_readline()
-    
+
     try:
         config = JiraConfigFile()
     except Exception as e:
         print(f"Configuration error: {e}")
         print("Please create ~/.jira/config.ini with your Jira credentials")
         return 1
-    
+
+    # Non-interactive mode: just print today's worklogs and exit
+    if arguments['--list']:
+        daily_worklogs = get_daily_worklogs(config)
+
+        if daily_worklogs:
+            total_seconds = 0
+            for worklog in daily_worklogs:
+                line = f"\033[1m{worklog['issue']}\033[0m: {worklog['timeSpent']} - {worklog['summary']}"
+                if worklog['comment']:
+                    line += f" – {worklog['comment']}"
+                print(line)
+                total_seconds += worklog['timeSpentSeconds']
+
+            print(f"Total: {total_seconds // 3600}h {(total_seconds % 3600) // 60}m")
+        else:
+            print("No worklogs found for today")
+        return 0
+
+    # Setup readline with persistent history (only for interactive mode)
+    setup_readline()
+
     print(f"Connected to Jira at {config.domain}")
     print("Type 'help' for available commands, or 'ISSUE TIME [DESC]' to log time (e.g., 'ABC-123 2h Fixed bug')")
-    
+
     # Show initial status
     list_worklogs([], config)
-    
+
     try:
         consume(repeatfunc(
             run_single_command,
