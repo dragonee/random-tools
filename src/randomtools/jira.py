@@ -1107,10 +1107,16 @@ def main():
     if arguments['--list']:
         daily_worklogs = get_daily_worklogs(config)
 
+        # Only use colors if output is a terminal
+        if sys.stdout.isatty():
+            bold, reset = "\033[1m", "\033[0m"
+        else:
+            bold, reset = "", ""
+
         if daily_worklogs:
             total_seconds = 0
             for worklog in daily_worklogs:
-                line = f"\033[1m{worklog['issue']}\033[0m: {worklog['timeSpent']} - {worklog['summary']}"
+                line = f"{bold}{worklog['issue']}{reset}: {worklog['timeSpent']} - {worklog['summary']}"
                 if worklog['comment']:
                     line += f" – {worklog['comment']}"
                 print(line)
