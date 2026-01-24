@@ -6,7 +6,9 @@ Usage:
 Options:
     -h, --help       Show this message.
     --version        Show version information.
-    -l, --list       Print today's worklogs and exit.
+    -l, --list       Print worklogs and exit.
+    -Y, --yesterday  With -l, show yesterday's worklogs.
+    --date DATE      With -l, show worklogs for DATE (YYYY-MM-DD or relative).
 
 Commands in shell:
     list                     - Show current day's worklogs and saved issues
@@ -1105,13 +1107,30 @@ def main():
 
     # Non-interactive mode: just print today's worklogs and exit
     if arguments['--list']:
-        daily_worklogs = get_daily_worklogs(config)
+        # Determine the target date
+        if arguments['--yesterday']:
+            target_date = datetime.date.today() - datetime.timedelta(days=1)
+        elif arguments['--date']:
+            parsed = dateparser.parse(arguments['--date'])
+            if parsed is None:
+                print(f"Error: Unable to parse date '{arguments['--date']}'")
+                return 1
+            target_date = parsed.date()
+        else:
+            target_date = datetime.date.today()
+
+        daily_worklogs = get_daily_worklogs(config, target_date)
 
         # Only use colors if output is a terminal
         if sys.stdout.isatty():
             bold, reset = "\033[1m", "\033[0m"
         else:
             bold, reset = "", ""
+
+        # Show date header if not today
+        today = datetime.date.today()
+        if target_date != today:
+            print(f"Worklogs for {target_date.strftime('%Y-%m-%d')} ({target_date.strftime('%A')}):")
 
         if daily_worklogs:
             total_seconds = 0
@@ -1124,7 +1143,10 @@ def main():
 
             print(f"Total: {total_seconds // 3600}h {(total_seconds % 3600) // 60}m")
         else:
-            print("No worklogs found for today")
+            if target_date == today:
+                print("No worklogs found for today")
+            else:
+                print("No worklogs found")
         return 0
 
     # Setup readline with persistent history (only for interactive mode)
