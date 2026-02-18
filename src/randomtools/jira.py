@@ -64,6 +64,9 @@ HISTORY_FILE = CACHE_DIR / 'history'
 # Global variable to track current working date
 current_date = None
 
+# Track time of last worklog entry
+last_worklog_time = None
+
 def ensure_cache_dir():
     """Ensure cache directory exists."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -737,10 +740,29 @@ def get_recent_issues(config, days=7):
         print(f"Error connecting to Jira API: {e}")
         return []
 
+def do_set_date(new_date):
+    """Set the working date to the given date."""
+    global current_date, last_worklog_time
+    current_date = new_date
+    last_worklog_time = None
+
+    # Show relative description
+    today = datetime.date.today()
+    if new_date == today:
+        relative = "today"
+    elif new_date == today - datetime.timedelta(days=1):
+        relative = "yesterday"
+    else:
+        days_diff = (today - new_date).days
+        if days_diff > 0:
+            relative = f"{days_diff} day{'s' if days_diff != 1 else ''} ago"
+        else:
+            relative = f"in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
+
+    print(f"Set working date to {new_date.strftime('%Y-%m-%d')} ({new_date.strftime('%A')}, {relative})")
+
 def set_date_command(args, config):
     """Set the current working date."""
-    global current_date
-    
     if not args:
         print("Usage: set DATE")
         print("Examples:")
@@ -749,35 +771,19 @@ def set_date_command(args, config):
         print("  set 3 days ago")
         print("  set yesterday")
         return
-    
+
     date_str = " ".join(args)
-    
+
     try:
         parsed_date = dateparser.parse(date_str)
         if parsed_date is None:
             raise ValueError(f"Unable to parse date: {date_str}")
-        
-        new_date = parsed_date.date()
-        current_date = new_date
-        
-        # Show relative description
-        today = datetime.date.today()
-        if new_date == today:
-            relative = "today"
-        elif new_date == today - datetime.timedelta(days=1):
-            relative = "yesterday"
-        else:
-            days_diff = (today - new_date).days
-            if days_diff > 0:
-                relative = f"{days_diff} day{'s' if days_diff != 1 else ''} ago"
-            else:
-                relative = f"in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
-        
-        print(f"Set working date to {new_date.strftime('%Y-%m-%d')} ({new_date.strftime('%A')}, {relative})")
-        
+
+        do_set_date(parsed_date.date())
+
         # Show worklogs for the newly set date
         list_worklogs([], config)
-        
+
     except (ValueError, AttributeError) as e:
         print(f"Error: Unable to parse date '{date_str}'")
         print("Supported formats:")
@@ -785,11 +791,16 @@ def set_date_command(args, config):
         print("  Weekday names (Monday, Tue, Wed, etc.)")
         print("  Relative dates (3 days ago, yesterday)")
 
+def do_reset_date():
+    """Reset the working date to today."""
+    global current_date, last_worklog_time
+    current_date = None
+    last_worklog_time = None
+    print("Reset to today's date")
+
 def reset_date_command(args, config):
     """Reset to today's date."""
-    global current_date
-    current_date = None
-    print("Reset to today's date")
+    do_reset_date()
 
 def get_working_date():
     """Get the current working date (either set date or today)."""
@@ -960,20 +971,47 @@ def is_issue_time_command(text):
     """Check if text matches issue time logging format."""
     return RE_ISSUE_TIME.match(text) is not None
 
+def check_stale_date():
+    """Check if the set date might be stale and prompt to reset.
+
+    If a specific date was set and more than 30 minutes have passed
+    since the last worklog entry, prompt the user to reset to today.
+
+    Returns True if we should proceed, False if the user cancelled.
+    """
+    if current_date is None or current_date == datetime.date.today() or last_worklog_time is None:
+        return True
+
+    elapsed = datetime.datetime.now() - last_worklog_time
+    if elapsed.total_seconds() < 30 * 60:
+        return True
+
+    formatted_date = current_date.strftime('%Y-%m-%d')
+    try:
+        answer = input(f"The date is set to {formatted_date}. Reset to current date? [Y/n] ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+
+    if answer.strip().lower() != 'n':
+        do_reset_date()
+
+    return True
+
 def log_time_to_issue(config, text):
     """Log time to a Jira issue."""
     match = RE_ISSUE_TIME.match(text)
     if not match:
         print("Invalid format. Use: ISSUE TIME [DESCRIPTION] (e.g., 'ABC-123 2h Fixed login bug')")
         return
-    
+
     issue = match.group(1).upper()
     time_str = match.group(2)
     description = match.group(3) if match.group(3) else ""
-    
+
     # Parse time using the new function
     time_spent_seconds, time_spent = parse_time_to_seconds(time_str)
-    
+
     if time_spent_seconds is None:
         print("Invalid time format. Supported formats:")
         print("   1.5h (decimal hours)")
@@ -982,7 +1020,11 @@ def log_time_to_issue(config, text):
         print("   3:10 (hours:minutes)")
         print("   30m (minutes only)")
         return
-    
+
+    # Check if the set date might be stale
+    if not check_stale_date():
+        return
+
     url = f"{config.base_url}/rest/api/3/issue/{issue}/worklog"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {
@@ -1027,11 +1069,14 @@ def log_time_to_issue(config, text):
         response = requests.post(url, json=payload, headers=headers, auth=auth)
         
         if response.status_code == 201:
+            global last_worklog_time
+            last_worklog_time = datetime.datetime.now()
+
             if description:
                 print(f"Logged {time_spent} to \033[1m{issue}\033[0m: {description}")
             else:
                 print(f"Logged {time_spent} to \033[1m{issue}\033[0m")
-            
+
             # Show working date's worklogs after successful logging
             working_date = get_working_date()
             today = datetime.date.today()
