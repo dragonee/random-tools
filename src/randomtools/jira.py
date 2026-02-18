@@ -791,11 +791,16 @@ def set_date_command(args, config):
         print("  Weekday names (Monday, Tue, Wed, etc.)")
         print("  Relative dates (3 days ago, yesterday)")
 
+def do_reset_date():
+    """Reset the working date to today."""
+    global current_date, last_worklog_time
+    current_date = None
+    last_worklog_time = None
+    print("Reset to today's date")
+
 def reset_date_command(args, config):
     """Reset to today's date."""
-    global current_date
-    current_date = None
-    print("Reset to today's date")
+    do_reset_date()
 
 def get_working_date():
     """Get the current working date (either set date or today)."""
@@ -974,7 +979,7 @@ def check_stale_date():
 
     Returns True if we should proceed, False if the user cancelled.
     """
-    if current_date is None or last_worklog_time is None:
+    if current_date is None or current_date == datetime.date.today() or last_worklog_time is None:
         return True
 
     elapsed = datetime.datetime.now() - last_worklog_time
@@ -989,7 +994,7 @@ def check_stale_date():
         return False
 
     if answer.strip().lower() != 'n':
-        do_set_date(datetime.date.today())
+        do_reset_date()
 
     return True
 
