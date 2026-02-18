@@ -740,10 +740,29 @@ def get_recent_issues(config, days=7):
         print(f"Error connecting to Jira API: {e}")
         return []
 
+def do_set_date(new_date):
+    """Set the working date to the given date."""
+    global current_date, last_worklog_time
+    current_date = new_date
+    last_worklog_time = None
+
+    # Show relative description
+    today = datetime.date.today()
+    if new_date == today:
+        relative = "today"
+    elif new_date == today - datetime.timedelta(days=1):
+        relative = "yesterday"
+    else:
+        days_diff = (today - new_date).days
+        if days_diff > 0:
+            relative = f"{days_diff} day{'s' if days_diff != 1 else ''} ago"
+        else:
+            relative = f"in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
+
+    print(f"Set working date to {new_date.strftime('%Y-%m-%d')} ({new_date.strftime('%A')}, {relative})")
+
 def set_date_command(args, config):
     """Set the current working date."""
-    global current_date
-    
     if not args:
         print("Usage: set DATE")
         print("Examples:")
@@ -752,35 +771,19 @@ def set_date_command(args, config):
         print("  set 3 days ago")
         print("  set yesterday")
         return
-    
+
     date_str = " ".join(args)
-    
+
     try:
         parsed_date = dateparser.parse(date_str)
         if parsed_date is None:
             raise ValueError(f"Unable to parse date: {date_str}")
-        
-        new_date = parsed_date.date()
-        current_date = new_date
-        
-        # Show relative description
-        today = datetime.date.today()
-        if new_date == today:
-            relative = "today"
-        elif new_date == today - datetime.timedelta(days=1):
-            relative = "yesterday"
-        else:
-            days_diff = (today - new_date).days
-            if days_diff > 0:
-                relative = f"{days_diff} day{'s' if days_diff != 1 else ''} ago"
-            else:
-                relative = f"in {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
-        
-        print(f"Set working date to {new_date.strftime('%Y-%m-%d')} ({new_date.strftime('%A')}, {relative})")
-        
+
+        do_set_date(parsed_date.date())
+
         # Show worklogs for the newly set date
         list_worklogs([], config)
-        
+
     except (ValueError, AttributeError) as e:
         print(f"Error: Unable to parse date '{date_str}'")
         print("Supported formats:")
@@ -971,8 +974,6 @@ def check_stale_date():
 
     Returns True if we should proceed, False if the user cancelled.
     """
-    global current_date, last_worklog_time
-
     if current_date is None or last_worklog_time is None:
         return True
 
@@ -988,8 +989,7 @@ def check_stale_date():
         return False
 
     if answer.strip().lower() != 'n':
-        current_date = None
-        print("Reset to today's date")
+        do_set_date(datetime.date.today())
 
     return True
 
