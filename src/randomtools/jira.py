@@ -64,6 +64,9 @@ HISTORY_FILE = CACHE_DIR / 'history'
 # Global variable to track current working date
 current_date = None
 
+# Track time of last worklog entry
+last_worklog_time = None
+
 def ensure_cache_dir():
     """Ensure cache directory exists."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -960,20 +963,50 @@ def is_issue_time_command(text):
     """Check if text matches issue time logging format."""
     return RE_ISSUE_TIME.match(text) is not None
 
+def check_stale_date():
+    """Check if the set date might be stale and prompt to reset.
+
+    If a specific date was set and more than 30 minutes have passed
+    since the last worklog entry, prompt the user to reset to today.
+
+    Returns True if we should proceed, False if the user cancelled.
+    """
+    global current_date, last_worklog_time
+
+    if current_date is None or last_worklog_time is None:
+        return True
+
+    elapsed = datetime.datetime.now() - last_worklog_time
+    if elapsed.total_seconds() < 30 * 60:
+        return True
+
+    formatted_date = current_date.strftime('%Y-%m-%d')
+    try:
+        answer = input(f"The date is set to {formatted_date}. Reset to current date? [Y/n] ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+
+    if answer.strip().lower() != 'n':
+        current_date = None
+        print("Reset to today's date")
+
+    return True
+
 def log_time_to_issue(config, text):
     """Log time to a Jira issue."""
     match = RE_ISSUE_TIME.match(text)
     if not match:
         print("Invalid format. Use: ISSUE TIME [DESCRIPTION] (e.g., 'ABC-123 2h Fixed login bug')")
         return
-    
+
     issue = match.group(1).upper()
     time_str = match.group(2)
     description = match.group(3) if match.group(3) else ""
-    
+
     # Parse time using the new function
     time_spent_seconds, time_spent = parse_time_to_seconds(time_str)
-    
+
     if time_spent_seconds is None:
         print("Invalid time format. Supported formats:")
         print("   1.5h (decimal hours)")
@@ -982,7 +1015,11 @@ def log_time_to_issue(config, text):
         print("   3:10 (hours:minutes)")
         print("   30m (minutes only)")
         return
-    
+
+    # Check if the set date might be stale
+    if not check_stale_date():
+        return
+
     url = f"{config.base_url}/rest/api/3/issue/{issue}/worklog"
     auth = HTTPBasicAuth(config.email, config.api_token)
     headers = {
@@ -1027,11 +1064,14 @@ def log_time_to_issue(config, text):
         response = requests.post(url, json=payload, headers=headers, auth=auth)
         
         if response.status_code == 201:
+            global last_worklog_time
+            last_worklog_time = datetime.datetime.now()
+
             if description:
                 print(f"Logged {time_spent} to \033[1m{issue}\033[0m: {description}")
             else:
                 print(f"Logged {time_spent} to \033[1m{issue}\033[0m")
-            
+
             # Show working date's worklogs after successful logging
             working_date = get_working_date()
             today = datetime.date.today()
