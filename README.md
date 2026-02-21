@@ -138,12 +138,15 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
 Jira worklog management tool with shell-like interface.
 
-Usage: 
+Usage:
     jira [options]
 
 Options:
     -h, --help       Show this message.
     --version        Show version information.
+    -l, --list       Print worklogs and exit.
+    -Y, --yesterday  With -l, show yesterday's worklogs.
+    --date DATE      With -l, show worklogs for DATE (YYYY-MM-DD or relative).
 
 Commands in shell:
     list                     - Show current day's worklogs and saved issues
@@ -214,6 +217,28 @@ Configuration:
     domain = your-company
     email = your-email@company.com
     api_token = your-jira-api-token
+```
+
+### jira-report (1.0)
+
+```
+Generate Markdown report of Jira worklogs for a given period.
+
+Usage:
+    jira-report [options]
+
+Options:
+    -h, --help              Show this message.
+    --version               Show version information.
+    --month                 Report for the current calendar month.
+    --week                  Report for the current calendar week.
+    -d, --from-date DATE    Start date (YYYY-MM-DD or relative).
+    -D, --to-date DATE      End date (YYYY-MM-DD or relative).
+    -Y, --last              Previous period (--month/--week) or yesterday.
+    -L, --level LEVEL       Section nesting depth [default: 1].
+    --skip-worklogs         Don't print individual worklog descriptions.
+    -S, --skip-categorization  Don't group worklogs into sections.
+    --reset                 Ignore saved section mappings (start fresh).
 ```
 
 ### jira-dashboard-dates (1.0)
@@ -359,6 +384,8 @@ Options:
 Commands in shell:
     SECTION          - Copy section content to clipboard
     list             - Show available sections
+    config           - Show the raw YAML configuration
+    edit             - Edit the YAML configuration file
     help             - Show this help
     
 Quit by pressing Ctrl+D or Ctrl+C.
@@ -372,7 +399,7 @@ Configuration:
     
     Types:
     - text (default): requires 'content' attribute
-    - file: requires 'file' attribute (path to file)
+    - file: requires 'file' attribute (absolute path or relative to ~/.info/)
     - program: requires 'command' attribute (shell command)
     
     Example ~/.info/example.yaml:
@@ -385,9 +412,13 @@ Configuration:
       type: program
       command: "pwd"
     
-    readme:
+    readme_absolute:
       type: file
       file: "~/README.md"
+    
+    readme_relative:
+      type: file
+      file: "snippets/readme.txt"
     
     simple_text: "This is just plain text"
 ```
