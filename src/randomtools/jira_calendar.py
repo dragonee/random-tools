@@ -13,6 +13,8 @@ Options:
     -c CALENDAR, --calendar=CALENDAR  Calendar name or ID to use (overrides config)
     -m TITLE, --meeting=TITLE  Title of the calendar event (overrides default)
     -d DESC, --description=DESC  Additional description for the calendar event
+    -A, --dont-assign          Don't assign the issue to me (default: assign)
+    -M, --no-google-meet       Don't create a Google Meet conference (default: create)
     -h, --help                 Show this message.
     --version                  Show version information.
 
@@ -52,6 +54,7 @@ import json
 import datetime
 import re
 import time
+import uuid
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -218,7 +221,36 @@ def get_google_calendar_service(config):
     
     return build('calendar', 'v3', credentials=creds)
 
-def create_jira_issue(jira_config, project, summary, meeting_title=None, additional_description=None):
+def get_myself(jira_config):
+    """Get the current user's account ID from Jira."""
+    url = f"{jira_config.base_url}/rest/api/3/myself"
+    auth = HTTPBasicAuth(jira_config.email, jira_config.api_token)
+    headers = {"Accept": "application/json"}
+
+    response = requests.get(url, headers=headers, auth=auth)
+
+    if response.status_code == 200:
+        return response.json()['accountId']
+
+    raise Exception(f"Failed to get current user. Status: {response.status_code}, Response: {response.text}")
+
+
+def assign_issue(jira_config, issue_key, account_id):
+    """Assign a Jira issue to a user."""
+    url = f"{jira_config.base_url}/rest/api/3/issue/{issue_key}/assignee"
+    auth = HTTPBasicAuth(jira_config.email, jira_config.api_token)
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.put(url, json={"accountId": account_id}, headers=headers, auth=auth)
+
+    if response.status_code != 204:
+        print(f"Warning: Could not assign issue {issue_key}. Status: {response.status_code}")
+
+
+def create_jira_issue(jira_config, project, summary, meeting_title=None, additional_description=None, assignee_account_id=None):
     """Create a new Jira issue and return its key."""
     url = f"{jira_config.base_url}/rest/api/3/issue"
     auth = HTTPBasicAuth(jira_config.email, jira_config.api_token)
@@ -268,22 +300,25 @@ def create_jira_issue(jira_config, project, summary, meeting_title=None, additio
             ]
         })
     
-    payload = {
-        "fields": {
-            "project": {
-                "key": project
-            },
-            "summary": issue_summary,
-            "description": {
-                "type": "doc",
-                "version": 1,
-                "content": description_content
-            },
-            "issuetype": {
-                "name": "Task"
-            }
+    fields = {
+        "project": {
+            "key": project
+        },
+        "summary": issue_summary,
+        "description": {
+            "type": "doc",
+            "version": 1,
+            "content": description_content
+        },
+        "issuetype": {
+            "name": "Task"
         }
     }
+
+    if assignee_account_id:
+        fields["assignee"] = {"accountId": assignee_account_id}
+
+    payload = {"fields": fields}
     
     try:
         response = requests.post(url, json=payload, headers=headers, auth=auth)
@@ -320,19 +355,19 @@ def get_issue_summary(jira_config, issue_key):
         print(f"Warning: Error connecting to Jira API for issue {issue_key}: {e}")
         return None
 
-def create_calendar_event(calendar_service, calendar_id, start_time, end_time, issue_key, issue_url, summary, meeting_title=None, additional_description=None):
+def create_calendar_event(calendar_service, calendar_id, start_time, end_time, issue_key, issue_url, summary, meeting_title=None, additional_description=None, google_meet=True):
     """Create a Google Calendar event with Jira issue link."""
     # Use custom meeting title or default to issue + summary
     event_title = meeting_title or f"{issue_key}: {summary}"
-    
+
     # Build description with Jira link and optional additional description
     description_parts = [f"Jira Issue: {issue_url}"]
     if additional_description:
         description_parts.append(f"\n{additional_description}")
-    
+
     # Get timezone from the datetime objects
     timezone_name = start_time.tzinfo.key if hasattr(start_time.tzinfo, 'key') else 'UTC'
-    
+
     event = {
         'summary': event_title,
         'description': '\n'.join(description_parts),
@@ -345,15 +380,26 @@ def create_calendar_event(calendar_service, calendar_id, start_time, end_time, i
             'timeZone': timezone_name,
         },
     }
-    
+
+    if google_meet:
+        event['conferenceData'] = {
+            'createRequest': {
+                'requestId': str(uuid.uuid4()),
+                'conferenceSolutionKey': {
+                    'type': 'hangoutsMeet',
+                },
+            },
+        }
+
     try:
         event = calendar_service.events().insert(
             calendarId=calendar_id,
-            body=event
+            body=event,
+            conferenceDataVersion=1 if google_meet else 0,
         ).execute()
-        
+
         return event.get('htmlLink')
-        
+
     except HttpError as error:
         raise Exception(f"Error creating calendar event: {error}")
 
@@ -371,6 +417,8 @@ def main():
     calendar_override = arguments.get('--calendar')
     meeting_title = arguments.get('--meeting')
     additional_description = arguments.get('--description')
+    assign_to_me = not arguments.get('--dont-assign', False)
+    google_meet = not arguments.get('--no-google-meet', False)
     
     try:
         # Initialize configs
@@ -395,23 +443,32 @@ def main():
             duration_seconds = parse_time_duration(duration_str)
             end_time = start_time + datetime.timedelta(seconds=duration_seconds)
         
+        # Get current user account ID for assignment
+        account_id = None
+        if assign_to_me:
+            account_id = get_myself(jira_config)
+
         # Handle Jira issue
         if is_existing_issue(project_or_issue):
             # It's an existing issue
             issue_key = project_or_issue.upper()
             print(f"Using existing issue: {issue_key}")
-            
+
             # If no custom meeting title provided, get issue summary from Jira
             if not meeting_title:
                 issue_summary = get_issue_summary(jira_config, issue_key)
                 if issue_summary:
                     summary = issue_summary
                     print(f"Using issue summary: {issue_summary}")
+
+            if account_id:
+                assign_issue(jira_config, issue_key, account_id)
+                print(f"Assigned issue to me")
         else:
             # It's a project key, create new issue
             project = project_or_issue.upper()
             print(f"Creating new issue in project {project}...")
-            issue_key = create_jira_issue(jira_config, project, summary, meeting_title, additional_description)
+            issue_key = create_jira_issue(jira_config, project, summary, meeting_title, additional_description, assignee_account_id=account_id)
             print(f"Created issue: {issue_key}")
         
         issue_url = f"{jira_config.base_url}/browse/{issue_key}"
@@ -424,8 +481,9 @@ def main():
         print(f"Creating calendar event for {start_time.strftime('%Y-%m-%d %H:%M')} - {end_time.strftime('%H:%M')}...")
         calendar_service = get_google_calendar_service(google_config)
         calendar_link = create_calendar_event(
-            calendar_service, calendar_to_use, start_time, end_time, 
-            issue_key, issue_url, summary, meeting_title, additional_description
+            calendar_service, calendar_to_use, start_time, end_time,
+            issue_key, issue_url, summary, meeting_title, additional_description,
+            google_meet=google_meet,
         )
         
         print(f"✓ Issue: {issue_url}")
