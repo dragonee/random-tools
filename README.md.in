@@ -16,6 +16,8 @@
 
 [$ make-readme -h 3 movetoguids]
 
+[$ make-readme -h 3 pdfrepeat]
+
 [$ make-readme -h 3 qr]
 
 ## SoDA mail matcher
@@ -53,8 +55,16 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 
 [$ make-readme -h 3 copier]
 
+## Slack Tools
+
+[$ make-readme -h 3 slack-channels]
+
 ## Markdown utilities
 
 [$ make-readme -h 3 onelinesummary]
 
 [$ make-readme -h 3 usecase]
+
+## Other
+
+[$ make-readme -h 3 wish]
