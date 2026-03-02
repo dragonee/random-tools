@@ -83,6 +83,20 @@ Options:
     --version   Show version information.
 ```
 
+### pdfrepeat (1.0)
+
+```
+Repeat a PDF multiple times
+
+Usage:
+    pdfrepeat [options] FILE N
+
+Options:
+    -o OUTPUT   Provide a filename for output file.
+    -h, --help  Show this message.
+    --version   Show version information.
+```
+
 ### qr (1.0.0)
 
 ```
@@ -166,12 +180,12 @@ Issue logging:
 Quit by pressing Ctrl+D or Ctrl+C.
 ```
 
-### jira-calendar (1.0)
+### jira-calendar (1.1)
 
 ```
 Jira + Google Calendar integration tool.
 
-Usage: 
+Usage:
     jira-calendar PROJECT_OR_ISSUE [options] TIME DAY
     jira-calendar PROJECT_OR_ISSUE [options] TIME_START TIME_END DAY
 
@@ -180,39 +194,41 @@ Arguments:
 
 Options:
     -t TIME, --duration=TIME   Meeting duration [default: 1h]
-    -s SUMMARY, --summary=SUMMARY  Issue summary for new issue [default: Meeting]
     -c CALENDAR, --calendar=CALENDAR  Calendar name or ID to use (overrides config)
-    -m TITLE, --meeting=TITLE  Title of the calendar event (overrides default)
-    -d DESC, --description=DESC  Additional description for the calendar event
+    -A, --dont-assign          Default template checkbox for assign to unchecked
+    -M, --no-google-meet       Default template checkbox for Google Meet to unchecked
+    --slack CHANNEL            Slack channel to invite members from and notify
+    -S, --no-message           Default template checkbox for Slack message to unchecked
+    --template                 Print the meeting template to stdout and exit
+    -f FILE, --file=FILE       Use a prefilled template file instead of opening Vim
     -h, --help                 Show this message.
     --version                  Show version information.
 
 Examples:
-    jira-calendar MEET 14:30 Friday                    # Create issue in MEET project, 1h meeting
-    jira-calendar ABC-123 14:30 Friday                 # Use existing issue ABC-123
-    jira-calendar MEET -t 30m 14:30 Friday            # 30min meeting in MEET project
-    jira-calendar MEET 14:30 15:00 Friday             # Meeting from 14:30 to 15:00
-    jira-calendar ABC-123 14:30 "next Friday"         # Use existing issue, next Friday
-    jira-calendar MEET 14:30 2024-12-25               # Meeting on specific date
-    jira-calendar MEET -c work 14:30 Friday           # Use named calendar "work"
-    jira-calendar MEET -m "Team Standup" 14:30 Friday  # Custom meeting title
-    jira-calendar MEET -d "Discuss Q4 planning" 14:30 Friday  # Add description
+    jira-calendar MEET 14:30 Friday                        # Opens Vim to edit meeting template
+    jira-calendar ABC-123 14:30 Friday                     # Use existing issue ABC-123
+    jira-calendar MEET -t 30m 14:30 Friday                 # 30min meeting
+    jira-calendar MEET 14:30 15:00 Friday                  # Meeting from 14:30 to 15:00
+    jira-calendar MEET --slack dev 14:30 Friday            # Prefill attendees from #dev channel
+    jira-calendar MEET --template --slack dev 14:30 Friday # Print template to stdout
+    jira-calendar MEET -f meeting.md 14:30 Friday          # Use prefilled template file
+    jira-calendar MEET -M -A 14:30 Friday                  # Default: no Meet, no assign
 
 Configuration:
     Create ~/.google/config.ini with:
-    
+
     [WorkGoogle]
     token_path = ~/.google/work_token.json
     credentials_path = ~/.google/work_credentials.json
     selected_calendar = work
-    
+
     [WorkCalendars]
     work = john.doe@company.com
     personal = john.doe@gmail.com
     team = team-calendar@company.com
-    
+
     And ~/.jira/config.ini with:
-    
+
     [Jira]
     domain = your-company
     email = your-email@company.com
@@ -373,16 +389,23 @@ Examples:
 Copier tool for clipboard management with YAML configuration.
 
 Usage:
-    copier <file>
+    copier [<file>]
+    copier -c <name>
+    copier -e <name>
     copier -h | --help
     copier --version
 
 Options:
+    -c <name>        Create a new configuration file and open it in editor.
+    -e <name>        Open an existing configuration file in editor.
     -h, --help       Show this message.
     --version        Show version information.
 
 Commands in shell:
     SECTION          - Copy section content to clipboard
+    add KEY VALUE    - Add a new text section
+    addfile KEY PATH - Add a new file section
+    open SECTION     - Open a file section with 'open'
     list             - Show available sections
     config           - Show the raw YAML configuration
     edit             - Edit the YAML configuration file
@@ -421,6 +444,30 @@ Configuration:
       file: "snippets/readme.txt"
     
     simple_text: "This is just plain text"
+```
+
+## Slack Tools
+
+### slack-channels (1.1)
+
+```
+Look up Slack channels by name pattern and show last message age.
+
+Usage:
+    slack-channels [options] PATTERN...
+
+Options:
+    -d, --days DAYS      Do not show channels with last message newer than DAYS days ago.
+    -s, --sort ORDER     Sort by: newest, oldest, name [default: oldest].
+    -p, --print FORMAT   Output format: ago, date [default: ago].
+    --summary            Only list channel names.
+    -h, --help           Show this message.
+    --version            Show version information.
+
+Examples:
+    slack-channels general random
+    slack-channels "proj-.*" --sort oldest
+    slack-channels "team-" --days 30 --print date
 ```
 
 ## Markdown utilities
@@ -466,4 +513,20 @@ Scenario file format:
 
 1. Some case        <- short notation
 2. Some other case  <- can also be placed on top of file
+```
+
+## Other
+
+### wish (1.0)
+
+```
+Get wishes for someone.
+
+Usage: 
+    wish [options]
+
+Options:
+    --plural         Display plural wishes.
+    -h, --help       Show this message.
+    --version        Show version information.
 ```
