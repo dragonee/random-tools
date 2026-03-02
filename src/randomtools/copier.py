@@ -3,11 +3,13 @@
 Usage:
     copier [<file>]
     copier -c <name>
+    copier -e <name>
     copier -h | --help
     copier --version
 
 Options:
     -c <name>        Create a new configuration file and open it in editor.
+    -e <name>        Open an existing configuration file in editor.
     -h, --help       Show this message.
     --version        Show version information.
 
@@ -593,6 +595,22 @@ def create_config(name):
     subprocess.run([editor, str(config_path)])
     return 0
 
+def edit_config(name):
+    """Open an existing YAML configuration file in editor."""
+    config_path = CONFIG_DIR / f"{name}.yaml"
+
+    if not config_path.exists():
+        print(f"Configuration file not found: {config_path}")
+        return 1
+
+    editor = find_editor()
+    if not editor:
+        print("No suitable editor found. Please set the EDITOR environment variable.")
+        return 1
+
+    subprocess.run([editor, str(config_path)])
+    return 0
+
 def list_prefixes():
     """List available configuration prefixes from ~/.info/."""
     if not CONFIG_DIR.exists():
@@ -620,6 +638,9 @@ def main():
 
     if arguments['-c']:
         return create_config(arguments['-c'])
+
+    if arguments['-e']:
+        return edit_config(arguments['-e'])
 
     if current_file is None:
         return list_prefixes()
