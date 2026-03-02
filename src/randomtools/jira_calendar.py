@@ -422,6 +422,48 @@ def assign_issue(jira_config, issue_key, account_id):
         print(f"Warning: Could not assign issue {issue_key}. Status: {response.status_code}")
 
 
+def text_to_adf_content(text):
+    """Convert text with URLs into ADF paragraph content nodes.
+
+    Splits text on URLs so that plain text becomes text nodes and URLs become
+    text nodes with a link mark, making them clickable in Jira.
+    """
+    url_re = re.compile(r'(https?://\S+)')
+    parts = url_re.split(text)
+    nodes = []
+    for part in parts:
+        if not part:
+            continue
+        if url_re.match(part):
+            nodes.append({
+                "type": "text",
+                "text": part,
+                "marks": [{"type": "link", "attrs": {"href": part}}]
+            })
+        else:
+            nodes.append({"type": "text", "text": part})
+    return nodes
+
+
+def text_to_adf_description(text):
+    """Convert multi-line text into an ADF document body.
+
+    Each paragraph (separated by blank lines) becomes its own ADF paragraph
+    node. URLs within paragraphs are converted to clickable links.
+    """
+    paragraphs = re.split(r'\n{2,}', text.strip())
+    content = []
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+        content.append({
+            "type": "paragraph",
+            "content": text_to_adf_content(para)
+        })
+    return content
+
+
 def create_jira_issue(jira_config, project, title, description=None, assignee_account_id=None):
     """Create a new Jira issue and return its key."""
     url = f"{jira_config.base_url}/rest/api/3/issue"
@@ -431,21 +473,13 @@ def create_jira_issue(jira_config, project, title, description=None, assignee_ac
         "Content-Type": "application/json"
     }
 
-    description_content = [{
-        "type": "paragraph",
-        "content": [{
-            "type": "text",
-            "text": description or title
-        }]
-    }]
-
     fields = {
         "project": {"key": project},
         "summary": title,
         "description": {
             "type": "doc",
             "version": 1,
-            "content": description_content
+            "content": text_to_adf_description(description or title)
         },
         "issuetype": {"name": "Task"}
     }
@@ -499,13 +533,7 @@ def update_issue_description(jira_config, issue_key, description_text):
             "description": {
                 "type": "doc",
                 "version": 1,
-                "content": [{
-                    "type": "paragraph",
-                    "content": [{
-                        "type": "text",
-                        "text": description_text
-                    }]
-                }]
+                "content": text_to_adf_description(description_text)
             }
         }
     }
