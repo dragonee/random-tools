@@ -13,6 +13,9 @@ Options:
 
 Commands in shell:
     SECTION          - Copy section content to clipboard
+    add KEY VALUE    - Add a new text section
+    addfile KEY PATH - Add a new file section
+    open SECTION     - Open a file section with 'open'
     list             - Show available sections
     config           - Show the raw YAML configuration
     edit             - Edit the YAML configuration file
@@ -255,16 +258,7 @@ def process_file_section(section_name, section_config):
         print(f"Error: Section '{section_name}' of type 'file' requires 'file' attribute")
         return None
     
-    # Convert to Path object
-    path = Path(file_path)
-    
-    # Handle different path types
-    if path.is_absolute():
-        # Absolute path - use as-is, but expand ~ if present
-        file_path = path.expanduser()
-    else:
-        # Relative path - make relative to ~/.info directory
-        file_path = CONFIG_DIR / path
+    file_path = resolve_file_path(file_path)
     
     try:
         with open(file_path, 'r') as f:
@@ -389,12 +383,85 @@ def edit_command():
     except Exception as e:
         print(f"Error launching editor: {e}")
 
+def save_section(key, raw_value, validated):
+    """Save a new section to the YAML file and update in-memory config."""
+    global current_config
+
+    if key in current_config:
+        print(f"Section '{key}' already exists. Use 'edit' to modify it.")
+        return
+
+    config_path = CONFIG_DIR / f"{current_file}.yaml"
+
+    with open(config_path, 'r') as f:
+        raw_config = yaml.safe_load(f) or {}
+
+    raw_config[key] = raw_value
+
+    with open(config_path, 'w') as f:
+        yaml.safe_dump(raw_config, f, default_flow_style=False, allow_unicode=True)
+
+    current_config[key] = validated
+    print(f"Added section '\033[1m{key}\033[0m'")
+
+def add_command(key, value):
+    """Add a new text section to the configuration."""
+    save_section(key, value, {"type": "text", "content": value})
+
+def addfile_command(key, file_path):
+    """Add a new file section to the configuration."""
+    save_section(key, {"type": "file", "file": file_path}, {"type": "file", "file": file_path})
+
+def resolve_file_path(file_path):
+    """Resolve a file path, handling absolute and relative-to-config paths."""
+    path = Path(file_path).expanduser()
+    if path.is_absolute():
+        return path
+    return CONFIG_DIR / path
+
+def open_command(section_input):
+    """Open a file section using the 'open' command."""
+    if not current_config:
+        print("No configuration loaded")
+        return
+
+    # Reuse prefix matching from handle_section
+    if section_input in current_config:
+        section_name = section_input
+    else:
+        matching_sections = list(filter(lambda key: key.startswith(section_input), current_config.keys()))
+        match len(matching_sections):
+            case 0:
+                print(f"No sections found matching '{section_input}'")
+                return
+            case 1:
+                section_name = matching_sections[0]
+                print(f"Matched section: \033[1m{section_name}\033[0m")
+            case _:
+                print(f"Ambiguous prefix '{section_input}' matches multiple sections:")
+                for m in sorted(matching_sections):
+                    print(f"  \033[1m{m}\033[0m")
+                return
+
+    section_config = current_config[section_name]
+    if not isinstance(section_config, dict) or section_config.get('type') != 'file':
+        print(f"Section '{section_name}' is not a file section")
+        return
+
+    file_path = resolve_file_path(section_config['file'])
+    try:
+        subprocess.run(['open', str(file_path)])
+    except Exception as e:
+        print(f"Error opening file: {e}")
+
 def help_command():
     """Show help message."""
     help_text = """
 Available commands:
   SECTION          - Copy section content to clipboard
-  list             - Show available sections  
+  add KEY VALUE    - Add a new text section
+  addfile KEY PATH - Add a new file section
+  list             - Show available sections
   config           - Show the raw YAML configuration
   edit             - Edit the YAML configuration file
   help             - Show this help
@@ -453,18 +520,31 @@ def run_single_command():
         raise
     
     command = command.strip()
-    
-    match command:
-        case 'list':
+    parts = command.split(None, 2)
+
+    match parts:
+        case ['list']:
             list_sections()
-        case 'config':
+        case ['config']:
             config_command()
-        case 'edit':
+        case ['edit']:
             edit_command()
-        case 'help':
+        case ['help']:
             help_command()
-        case cmd if cmd:
-            # Treat as section name
+        case ['add', key, value]:
+            add_command(key, value)
+        case ['add', *_]:
+            print("Usage: add KEY VALUE")
+        case ['addfile', key, path]:
+            addfile_command(key, path)
+        case ['addfile', *_]:
+            print("Usage: addfile KEY PATH")
+        case ['open', key]:
+            open_command(key)
+        case ['open', *_]:
+            print("Usage: open SECTION")
+        case [cmd, *_] if cmd:
+            # Treat first word as section name
             handle_section(cmd)
         case _:
             # Empty command, do nothing
@@ -480,7 +560,29 @@ def create_config(name):
         print(f"Configuration file already exists: {config_path}")
         return 1
 
-    config_path.write_text("# Add sections below\n")
+    config_path.write_text("""\
+# Copier configuration file
+#
+# Each key is a section name. Values can be:
+#
+# Plain text:
+#   greeting: "Hello, World!"
+#
+# Text section:
+#   greeting:
+#     type: text
+#     content: "Hello, World!"
+#
+# File content (absolute or relative to ~/.info/):
+#   readme:
+#     type: file
+#     file: "snippets/readme.txt"
+#
+# Program output:
+#   date:
+#     type: program
+#     command: "date +%Y-%m-%d"
+""")
     print(f"Created {config_path}")
 
     editor = find_editor()
