@@ -197,11 +197,15 @@ def load_config(file_name):
     try:
         with open(config_path, 'r') as f:
             raw_config = yaml.safe_load(f)
-        
+
+        if raw_config is None:
+            print(f"✓ Configuration is empty (0 sections)")
+            return {}
+
         if not isinstance(raw_config, dict):
             print(f"Configuration must be a dictionary, got {type(raw_config)}")
             return None
-        
+
         # Validate the configuration manually
         try:
             validated_config = validate_config(raw_config)
