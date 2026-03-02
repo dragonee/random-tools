@@ -13,7 +13,7 @@ setup(
     ],
     packages=('randomtools', 'randomtools.config'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools', 'dateparser', 'pyyaml'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools', 'dateparser', 'pyyaml', 'whosename-client @ git+ssh://git@github.com/makimo/whose-name-client@main#egg=whosename-main'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
