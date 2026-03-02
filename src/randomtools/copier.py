@@ -2,10 +2,12 @@
 
 Usage:
     copier [<file>]
+    copier -c <name>
     copier -h | --help
     copier --version
 
 Options:
+    -c <name>        Create a new configuration file and open it in editor.
     -h, --help       Show this message.
     --version        Show version information.
 
@@ -468,6 +470,27 @@ def run_single_command():
             # Empty command, do nothing
             pass
 
+def create_config(name):
+    """Create a new YAML configuration file and open it in editor."""
+    ensure_config_dir()
+
+    config_path = CONFIG_DIR / f"{name}.yaml"
+
+    if config_path.exists():
+        print(f"Configuration file already exists: {config_path}")
+        return 1
+
+    config_path.write_text("# Add sections below\n")
+    print(f"Created {config_path}")
+
+    editor = find_editor()
+    if not editor:
+        print("No suitable editor found. Please set the EDITOR environment variable.")
+        return 1
+
+    subprocess.run([editor, str(config_path)])
+    return 0
+
 def list_prefixes():
     """List available configuration prefixes from ~/.info/."""
     if not CONFIG_DIR.exists():
@@ -492,6 +515,9 @@ def main():
 
     arguments = docopt(__doc__, version=VERSION)
     current_file = arguments['<file>']
+
+    if arguments['-c']:
+        return create_config(arguments['-c'])
 
     if current_file is None:
         return list_prefixes()
