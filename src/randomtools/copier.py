@@ -1,7 +1,7 @@
 """Copier tool for clipboard management with YAML configuration.
 
 Usage:
-    copier <file>
+    copier [<file>]
     copier -h | --help
     copier --version
 
@@ -468,16 +468,37 @@ def run_single_command():
             # Empty command, do nothing
             pass
 
+def list_prefixes():
+    """List available configuration prefixes from ~/.info/."""
+    if not CONFIG_DIR.exists():
+        print(f"Configuration directory not found: {CONFIG_DIR}")
+        return 1
+
+    yaml_files = sorted(CONFIG_DIR.glob('*.yaml'))
+
+    if not yaml_files:
+        print(f"No .yaml files found in {CONFIG_DIR}")
+        return 1
+
+    print("Available prefixes:")
+    for f in yaml_files:
+        print(f"  {f.stem}")
+
+    return 0
+
 def main():
     """Main entry point for copier command."""
     global current_config, current_file
-    
+
     arguments = docopt(__doc__, version=VERSION)
     current_file = arguments['<file>']
-    
+
+    if current_file is None:
+        return list_prefixes()
+
     # Setup readline with persistent history
     setup_readline()
-    
+
     # Load configuration
     current_config = load_config(current_file)
     if current_config is None:
