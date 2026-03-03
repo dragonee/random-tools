@@ -18,12 +18,15 @@ Commands in shell:
     create PROJECT DESC     - Create new issue in project
     update [DAYS]           - Refresh issues cache (defaults to 7 days)
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
+    alias ISSUE NAME        - Create alias for issue (reassigns if alias exists)
+    unalias NAME            - Remove an alias
     set DATE                - Set working date (YYYY-MM-DD, 'Mon', '3 days ago')
     reset                   - Reset to today's date
     help                    - Show this help
-    
+
 Issue logging:
     ISSUE TIME [DESC]       - Log time to issue (e.g., "ABC-123 2h" or "DEV-456 1.5h Fixed login bug")
+    ALIAS TIME [DESC]       - Log time using alias (e.g., "meeting 2h Daily standup")
     
 Quit by pressing Ctrl+D or Ctrl+C.
 """
@@ -59,6 +62,7 @@ CACHE_DIR = Path.home() / '.jira' / 'cache'
 SAVED_ISSUES_FILE = CACHE_DIR / 'saved_issues.json'
 EXCLUDED_ISSUES_FILE = CACHE_DIR / 'excluded_issues.json'
 RECENT_ISSUES_FILE = CACHE_DIR / 'recent_issues.json'
+ALIASES_FILE = CACHE_DIR / 'aliases.json'
 HISTORY_FILE = CACHE_DIR / 'history'
 
 # Global variable to track current working date
@@ -124,6 +128,29 @@ def save_json_set(file_path, data_set):
     ensure_cache_dir()
     with open(file_path, 'w') as f:
         json.dump(list(data_set), f, indent=2)
+
+def load_aliases():
+    """Load aliases from JSON file. Returns dict mapping alias name to issue key."""
+    if ALIASES_FILE.exists():
+        try:
+            with open(ALIASES_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return {}
+    return {}
+
+def save_aliases(aliases):
+    """Save aliases to JSON file."""
+    ensure_cache_dir()
+    with open(ALIASES_FILE, 'w') as f:
+        json.dump(aliases, f, indent=2)
+
+def aliases_by_issue(aliases):
+    """Build reverse mapping from issue key to list of alias names."""
+    reverse = {}
+    for name, issue_key in aliases.items():
+        reverse.setdefault(issue_key, []).append(name)
+    return reverse
 
 def get_input_until(predicate, prompt=None):
     text = None
@@ -416,6 +443,10 @@ def list_worklogs(args, config):
     else:
         date_context = ""
     
+    # Load aliases for display
+    aliases = load_aliases()
+    reverse_aliases = aliases_by_issue(aliases)
+
     # Parse arguments for date options
     if args and args[0] == 'week':
         print("Weekly worklogs:")
@@ -438,7 +469,9 @@ def list_worklogs(args, config):
                 
                 day_total = 0
                 for worklog in worklogs_by_date[date_str]:
-                    line = f"  \033[1m{worklog['issue']}\033[0m: {worklog['timeSpent']} - {worklog['summary']}"
+                    issue_aliases = reverse_aliases.get(worklog['issue'], [])
+                    alias_str = f" [{', '.join(sorted(issue_aliases))}]" if issue_aliases else ""
+                    line = f"  \033[1m{worklog['issue']}\033[0m{alias_str}: {worklog['timeSpent']} - {worklog['summary']}"
                     if worklog['comment']:
                         line += f" – {worklog['comment']}"
                     print(line)
@@ -457,12 +490,14 @@ def list_worklogs(args, config):
         if daily_worklogs:
             total_seconds = 0
             for worklog in daily_worklogs:
-                line = f"  \033[1m{worklog['issue']}\033[0m: {worklog['timeSpent']} - {worklog['summary']}"
+                issue_aliases = reverse_aliases.get(worklog['issue'], [])
+                alias_str = f" [{', '.join(sorted(issue_aliases))}]" if issue_aliases else ""
+                line = f"  \033[1m{worklog['issue']}\033[0m{alias_str}: {worklog['timeSpent']} - {worklog['summary']}"
                 if worklog['comment']:
                     line += f" – {worklog['comment']}"
                 print(line)
                 total_seconds += worklog['timeSpentSeconds']
-            
+
             print(f"  Total: {total_seconds // 3600}h {(total_seconds % 3600) // 60}m")
         else:
             print("  No worklogs found for today")
@@ -506,10 +541,12 @@ def list_worklogs(args, config):
             issue_info = all_issues[issue_key]
             source_indicator = "*" if issue_info['source'] == 'saved' else ""
             
+            issue_aliases = reverse_aliases.get(issue_key, [])
+            alias_str = f" [{', '.join(sorted(issue_aliases))}]" if issue_aliases else ""
             if 'summary' in issue_info:
-                print(f"  \033[1m{issue_key}\033[0m: {issue_info['summary']} {source_indicator}")
+                print(f"  \033[1m{issue_key}\033[0m{alias_str}: {issue_info['summary']} {source_indicator}")
             else:
-                print(f"  \033[1m{issue_key}\033[0m (details not available) {source_indicator}")
+                print(f"  \033[1m{issue_key}\033[0m{alias_str} (details not available) {source_indicator}")
         
         # Show cache info if we have cached items
         cached_count = sum(1 for v in all_issues.values() if v['source'] == 'cached')
@@ -677,6 +714,45 @@ def remove_issue(args, config):
         print(f"Removed \033[1m{issue}\033[0m from {lists_str} list{'s' if len(removed_from) > 1 else ''}")
     else:
         print(f"\033[1m{issue}\033[0m was not in any saved or excluded lists")
+
+def alias_issue(args, config):
+    """Create alias for an issue."""
+    if len(args) < 2:
+        print("Usage: alias ISSUE NAME")
+        return
+
+    issue = args[0].upper()
+    name = args[1].lower()
+
+    aliases = load_aliases()
+
+    if name in aliases and aliases[name] != issue:
+        old_issue = aliases[name]
+        aliases[name] = issue
+        save_aliases(aliases)
+        print(f"Moved alias '\033[1m{name}\033[0m' from {old_issue} to {issue}")
+    elif name in aliases:
+        print(f"Alias '\033[1m{name}\033[0m' already points to {issue}")
+    else:
+        aliases[name] = issue
+        save_aliases(aliases)
+        print(f"Aliased '\033[1m{name}\033[0m' → {issue}")
+
+def unalias_issue(args, config):
+    """Remove an alias."""
+    if not args:
+        print("Usage: unalias NAME")
+        return
+
+    name = args[0].lower()
+    aliases = load_aliases()
+
+    if name in aliases:
+        issue = aliases.pop(name)
+        save_aliases(aliases)
+        print(f"Removed alias '\033[1m{name}\033[0m' (was → {issue})")
+    else:
+        print(f"Alias '{name}' not found")
 
 def get_recent_issues(config, days=7):
     """Get issues from the last N days that the user has worked on."""
@@ -863,6 +939,8 @@ commands = {
     'remove': remove_issue,
     'create': create_issue,
     'update': update_cache,
+    'alias': alias_issue,
+    'unalias': unalias_issue,
     'set': set_date_command,
     'reset': reset_date_command,
     'help': help_command,
@@ -1128,14 +1206,24 @@ def run_single_command(config):
     if is_issue_time_command(original_text):
         log_time_to_issue(config, original_text)
         return
-    
+
     # Check if it's a regular command
     command = match_text_against_commands(parts[0])
     
     if command is not None:
         run_command(command, parts[1:], config)
         return
-    
+
+    # Try resolving first token as alias for time logging
+    aliases = load_aliases()
+    alias_key = parts[0].lower()
+    if alias_key in aliases and len(parts) >= 2:
+        resolved_issue = aliases[alias_key]
+        resolved_text = resolved_issue + ' ' + ' '.join(parts[1:])
+        if is_issue_time_command(resolved_text):
+            log_time_to_issue(config, resolved_text)
+            return
+
     print(f"Unknown command: {parts[0]}. Type 'help' for available commands.")
 
 
