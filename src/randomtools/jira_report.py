@@ -14,6 +14,7 @@ Options:
     -L, --level LEVEL       Section nesting depth [default: 1].
     --skip-worklogs         Don't print individual worklog descriptions.
     -S, --skip-categorization  Don't group worklogs into sections.
+    -A, --allocation        Show only category totals (hide individual issues).
     --reset                 Ignore saved section mappings (start fresh).
 """
 
@@ -192,7 +193,8 @@ def _node_total_seconds(node):
     return total
 
 
-def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs):
+def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs,
+                 allocation=False):
     """Recursively render a tree node into Markdown lines.
 
     Collapses nodes that have no direct issues and exactly one child
@@ -205,7 +207,8 @@ def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs):
     if not issues and len(children) == 1:
         child_name = next(iter(children))
         _render_node(children[child_name], path_parts + [child_name],
-                     depth, grand_total, lines, skip_worklogs)
+                     depth, grand_total, lines, skip_worklogs,
+                     allocation=allocation)
         return
 
     # Render heading (skip for the virtual root)
@@ -213,31 +216,37 @@ def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs):
         section_path = ':'.join(path_parts)
         total = _node_total_seconds(node)
         pct = total / grand_total * 100 if grand_total > 0 else 0
-        heading = '#' * (depth + 1)
-        lines.append(f"{heading} {section_path} ({format_duration(total)}, {pct:.0f}%)")
-        lines.append("")
+        if allocation:
+            indent = '  ' * (depth - 1)
+            lines.append(f"{indent}- {section_path} ({format_duration(total)}, {pct:.0f}%)")
+        else:
+            heading = '#' * (depth + 1)
+            lines.append(f"{heading} {section_path} ({format_duration(total)}, {pct:.0f}%)")
+            lines.append("")
 
     # Render direct issues
-    for issue_key in sorted(issues.keys()):
-        info = issues[issue_key]
-        issue_seconds = sum(w['timeSpentSeconds'] for w in info['worklogs'])
-        lines.append(f"- {issue_key}: {format_duration(issue_seconds)} - {info['summary']}")
-        if not skip_worklogs:
-            for w in info['worklogs']:
-                if w['comment']:
-                    lines.append(f"  - {w['comment']}")
+    if not allocation:
+        for issue_key in sorted(issues.keys()):
+            info = issues[issue_key]
+            issue_seconds = sum(w['timeSpentSeconds'] for w in info['worklogs'])
+            lines.append(f"- {issue_key}: {format_duration(issue_seconds)} - {info['summary']}")
+            if not skip_worklogs:
+                for w in info['worklogs']:
+                    if w['comment']:
+                        lines.append(f"  - {w['comment']}")
 
-    if issues:
-        lines.append("")
+        if issues:
+            lines.append("")
 
     # Render children
     for child_name in sorted(children.keys()):
         _render_node(children[child_name], path_parts + [child_name],
-                     depth + 1, grand_total, lines, skip_worklogs)
+                     depth + 1, grand_total, lines, skip_worklogs,
+                     allocation=allocation)
 
 
 def generate_report(start_date, end_date, worklogs_by_issue, sections,
-                    skip_worklogs=False, level=1):
+                    skip_worklogs=False, level=1, allocation=False):
     """Generate the Markdown report string."""
     lines = []
 
@@ -269,7 +278,8 @@ def generate_report(start_date, end_date, worklogs_by_issue, sections,
         _add_to_tree(root, parts, issues)
 
     # Render tree into Markdown
-    _render_node(root, [], 0, grand_total, lines, skip_worklogs)
+    _render_node(root, [], 0, grand_total, lines, skip_worklogs,
+                 allocation=allocation)
 
     return "\n".join(lines)
 
@@ -320,7 +330,8 @@ def main():
     level = int(arguments['--level'])
     report = generate_report(start_date, end_date, worklogs_by_issue, sections,
                              skip_worklogs=arguments['--skip-worklogs'],
-                             level=level)
+                             level=level,
+                             allocation=arguments['--allocation'])
     print(report)
 
     return 0
