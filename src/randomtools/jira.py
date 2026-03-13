@@ -20,6 +20,10 @@ Commands in shell:
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
     alias ISSUE NAME        - Create alias for issue (reassigns if alias exists)
     unalias NAME            - Remove an alias
+    queue                   - Show pending/failed worklogs
+    queue flush             - Send all pending worklogs now
+    queue retry             - Reset failed items for retry
+    queue clear             - Discard all queued items
     set DATE                - Set working date (YYYY-MM-DD, 'Mon', '3 days ago')
     reset                   - Reset to today's date
     help                    - Show this help
@@ -46,6 +50,7 @@ from more_itertools import repeatfunc, consume
 import shlex
 import sys
 import dateparser
+from functools import reduce
 
 try:
     import readline
@@ -64,6 +69,7 @@ EXCLUDED_ISSUES_FILE = CACHE_DIR / 'excluded_issues.json'
 RECENT_ISSUES_FILE = CACHE_DIR / 'recent_issues.json'
 ALIASES_FILE = CACHE_DIR / 'aliases.json'
 HISTORY_FILE = CACHE_DIR / 'history'
+QUEUE_FILE = CACHE_DIR / 'queue.json'
 
 # Global variable to track current working date
 current_date = None
@@ -931,6 +937,74 @@ def update_cache(args, config):
             json.dump(cache_data, f, indent=2)
 
 
+def format_queue_item(item):
+    """Format a queue item for display."""
+    issue = item['url'].rsplit('/issue/', 1)[-1].split('/')[0] if '/issue/' in item['url'] else '?'
+    seconds = item['payload'].get('timeSpentSeconds', 0)
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    time_str = f"{hours}h {minutes}m" if hours else f"{minutes}m"
+    return issue, time_str
+
+
+def queue_command(args, config):
+    """Inspect and manage the worklog queue."""
+    queue_contents = read_queue_file()
+
+    if args and args[0] == 'flush':
+        if queue_contents:
+            print(f"Flushing {len(queue_contents)} queued worklog(s)...")
+            if send_queue(config):
+                print("Queue flushed successfully")
+            else:
+                print("Some items could not be sent")
+        else:
+            print("Queue is empty")
+        return
+
+    if args and args[0] == 'clear':
+        if queue_contents:
+            update_queue_file([])
+            print(f"Cleared {len(queue_contents)} queued item(s)")
+        else:
+            print("Queue is empty")
+        return
+
+    if args and args[0] == 'retry':
+        failed = [item for item in queue_contents if 'error' in item]
+        if failed:
+            for item in failed:
+                item.pop('error', None)
+                item.pop('failed_at', None)
+            update_queue_file(queue_contents)
+            print(f"Reset {len(failed)} failed item(s) for retry")
+        else:
+            print("No failed items to retry")
+        return
+
+    # Default: show status
+    if not queue_contents:
+        print("Queue is empty")
+        return
+
+    pending = [item for item in queue_contents if 'error' not in item]
+    failed = [item for item in queue_contents if 'error' in item]
+
+    if pending:
+        print(f"Pending ({len(pending)}):")
+        for item in pending:
+            issue, time_str = format_queue_item(item)
+            print(f"  \033[1m{issue}\033[0m: {time_str}")
+
+    if failed:
+        print(f"Failed ({len(failed)}):")
+        for item in failed:
+            issue, time_str = format_queue_item(item)
+            error = item.get('error', 'unknown')
+            print(f"  \033[1m{issue}\033[0m: {time_str} — {error}")
+        print("Use 'queue retry' to retry or 'queue clear' to discard")
+
+
 # Command mapping
 commands = {
     'list': list_worklogs,
@@ -941,6 +1015,7 @@ commands = {
     'update': update_cache,
     'alias': alias_issue,
     'unalias': unalias_issue,
+    'queue': queue_command,
     'set': set_date_command,
     'reset': reset_date_command,
     'help': help_command,
@@ -1144,6 +1219,8 @@ def log_time_to_issue(config, text):
         }
     
     try:
+        send_queue(config)
+
         response = requests.post(url, json=payload, headers=headers, auth=auth)
         
         if response.status_code == 201:
@@ -1194,7 +1271,112 @@ def log_time_to_issue(config, text):
                 print(f"   Response: {response.text}")
             
     except requests.exceptions.RequestException as e:
+        save_to_queue({
+            "url": url,
+            "payload": payload
+        })
+
         print(f"Error connecting to Jira API: {e}")
+
+
+def read_queue_file() -> list:
+    try:
+        with open(QUEUE_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+    except Exception as e:
+        print(f"Error: queue file read error: {e}", file=sys.stderr)
+
+        return []
+
+
+def update_queue_file(queue_contents):
+    if not queue_contents:
+        try:
+            QUEUE_FILE.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return
+
+    try:
+        temp_file_name = QUEUE_FILE.with_suffix('.tmp')
+
+        with open(temp_file_name, 'w') as f:
+            json.dump(queue_contents, f, indent=2)
+
+        os.rename(temp_file_name, QUEUE_FILE)
+    except Exception as e:
+        print(f"Error: queue file write: {e}", file=sys.stderr)
+
+
+def save_to_queue(payload):
+    queue_contents = read_queue_file()
+
+    queue_contents.append(
+        payload
+    )
+
+    update_queue_file(queue_contents)
+
+
+def send_queue(config):
+    queue_contents = read_queue_file()
+
+    if not queue_contents:
+        return True
+
+    auth = HTTPBasicAuth(config.email, config.api_token)
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    remaining = []
+    failed = False
+
+    for item in queue_contents:
+        # Skip already-failed items
+        if 'error' in item:
+            remaining.append(item)
+            continue
+
+        url = item['url']
+        payload = item['payload']
+
+        try:
+            response = requests.post(url, json=payload, headers=headers, auth=auth)
+
+            if response.status_code == 201:
+                # Sent successfully — drop from queue
+                pass
+            elif 400 <= response.status_code < 500:
+                # Permanent error — mark and keep for inspection
+                item['error'] = f"{response.status_code}: {response.text}"
+                item['failed_at'] = datetime.datetime.now().isoformat()
+                remaining.append(item)
+                print(f"Error: queued worklog permanently failed ({response.status_code})")
+            else:
+                # Server error — keep and stop trying
+                remaining.append(item)
+                failed = True
+                print(f"Error: expected 201, got {response.status_code}: {response.text}")
+                break
+
+        except requests.exceptions.RequestException as e:
+            remaining.append(item)
+            failed = True
+            print(f"Error: failed to send queued worklogs: {e}")
+            break
+
+    # If we stopped early, keep the rest too
+    if failed:
+        idx = queue_contents.index(remaining[-1]) + 1
+        remaining.extend(queue_contents[idx:])
+
+    update_queue_file(remaining)
+
+    return not failed
 
 def run_single_command(config):
     """Run a single command in the shell loop."""
