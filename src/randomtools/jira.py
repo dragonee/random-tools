@@ -69,6 +69,7 @@ EXCLUDED_ISSUES_FILE = CACHE_DIR / 'excluded_issues.json'
 RECENT_ISSUES_FILE = CACHE_DIR / 'recent_issues.json'
 ALIASES_FILE = CACHE_DIR / 'aliases.json'
 HISTORY_FILE = CACHE_DIR / 'history'
+ISSUE_DETAILS_CACHE_FILE = CACHE_DIR / 'issue_details.json'
 QUEUE_FILE = CACHE_DIR / 'queue.json'
 
 # Global variable to track current working date
@@ -380,6 +381,24 @@ def extract_text_from_adf(adf_content):
     extract_text_recursive(adf_content)
     return ' '.join(text_parts).strip()
 
+def load_issue_details_cache():
+    """Load the issue details cache from disk."""
+    if ISSUE_DETAILS_CACHE_FILE.exists():
+        try:
+            with open(ISSUE_DETAILS_CACHE_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return {}
+    return {}
+
+
+def save_issue_details_cache(cache):
+    """Save the issue details cache to disk."""
+    ensure_cache_dir()
+    with open(ISSUE_DETAILS_CACHE_FILE, 'w') as f:
+        json.dump(cache, f, indent=2)
+
+
 def get_issue_details(config, issue_keys):
     """Get issue details (summary, description) for a list of issue keys."""
     if not issue_keys:
@@ -422,6 +441,11 @@ def get_issue_details(config, issue_keys):
                     'description': description
                 }
 
+            # Update cache with fetched details
+            cache = load_issue_details_cache()
+            cache.update(issue_details)
+            save_issue_details_cache(cache)
+
             return issue_details
         else:
             print(f"Failed to fetch issue details. Status: {response.status_code}")
@@ -429,7 +453,13 @@ def get_issue_details(config, issue_keys):
 
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Jira API: {e}")
-        return {}
+
+        # Fall back to cached details
+        cache = load_issue_details_cache()
+        cached_results = {k: cache[k] for k in issue_keys if k in cache}
+        if cached_results:
+            print(f"Using cached details for {len(cached_results)} issue(s)")
+        return cached_results
 
 def list_worklogs(args, config):
     """List current day's worklogs and saved issues."""
