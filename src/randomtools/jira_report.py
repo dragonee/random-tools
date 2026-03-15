@@ -252,7 +252,7 @@ def generate_report(start_date, end_date, worklogs_by_issue, sections,
 
     from_str = start_date.strftime('%Y-%m-%d')
     to_str = end_date.strftime('%Y-%m-%d')
-    lines.append(f"# Report from {from_str} to {to_str}")
+    lines.append(f"Report from {from_str} to {to_str}")
     lines.append("")
 
     # Compute grand total
