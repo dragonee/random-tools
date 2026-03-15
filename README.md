@@ -170,12 +170,19 @@ Commands in shell:
     create PROJECT DESC     - Create new issue in project
     update [DAYS]           - Refresh issues cache (defaults to 7 days)
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
+    alias ISSUE NAME        - Create alias for issue (reassigns if alias exists)
+    unalias NAME            - Remove an alias
+    queue                   - Show pending/failed worklogs
+    queue flush             - Send all pending worklogs now
+    queue retry             - Reset failed items for retry
+    queue clear             - Discard all queued items
     set DATE                - Set working date (YYYY-MM-DD, 'Mon', '3 days ago')
     reset                   - Reset to today's date
     help                    - Show this help
-    
+
 Issue logging:
     ISSUE TIME [DESC]       - Log time to issue (e.g., "ABC-123 2h" or "DEV-456 1.5h Fixed login bug")
+    ALIAS TIME [DESC]       - Log time using alias (e.g., "meeting 2h Daily standup")
     
 Quit by pressing Ctrl+D or Ctrl+C.
 ```
@@ -254,7 +261,27 @@ Options:
     -L, --level LEVEL       Section nesting depth [default: 1].
     --skip-worklogs         Don't print individual worklog descriptions.
     -S, --skip-categorization  Don't group worklogs into sections.
+    -A, --allocation        Show only category totals (hide individual issues).
     --reset                 Ignore saved section mappings (start fresh).
+```
+
+### jira-report-weekly (1.0)
+
+```
+Generate and distribute weekly Jira report.
+
+Runs jira-report --week -L2, saves to ~/.jira/reports/weekly/<sunday>.md,
+opens EDITOR for comments, then sends to Slack and journals the entry.
+
+Usage:
+    jira-report-weekly [options]
+
+Options:
+    -h, --help              Show this message.
+    --version               Show version information.
+    -c, --channel CHANNEL   Slack channel to post to (overrides config).
+    -Y, --last              Use previous week instead of current.
+    -f, --force             Overwrite report file even if it already exists.
 ```
 
 ### jira-dashboard-dates (1.0)
