@@ -37,6 +37,7 @@ setup(
             'github-synchronize = randomtools.github_synchronize:main',
             'copier = randomtools.copier:main',
             'slack-channels = randomtools.slack_channels:main',
+            'jira-report-weekly = randomtools.jira_report_weekly:main',
         ],
     }
 )
