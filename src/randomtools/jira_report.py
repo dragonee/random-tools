@@ -15,6 +15,7 @@ Options:
     --skip-worklogs         Don't print individual worklog descriptions.
     -S, --skip-categorization  Don't group worklogs into sections.
     -A, --allocation        Show only category totals (hide individual issues).
+    --worklog-time          Show time spent next to each worklog entry.
     --reset                 Ignore saved section mappings (start fresh).
 """
 
@@ -194,7 +195,7 @@ def _node_total_seconds(node):
 
 
 def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs,
-                 allocation=False):
+                 allocation=False, worklog_time=False):
     """Recursively render a tree node into Markdown lines.
 
     Collapses nodes that have no direct issues and exactly one child
@@ -208,7 +209,7 @@ def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs,
         child_name = next(iter(children))
         _render_node(children[child_name], path_parts + [child_name],
                      depth, grand_total, lines, skip_worklogs,
-                     allocation=allocation)
+                     allocation=allocation, worklog_time=worklog_time)
         return
 
     # Render heading (skip for the virtual root)
@@ -233,7 +234,11 @@ def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs,
             if not skip_worklogs:
                 for w in info['worklogs']:
                     if w['comment']:
-                        lines.append(f"  - {w['comment']}")
+                        if worklog_time:
+                            date_str = w['date'].strftime('%Y-%m-%d')
+                            lines.append(f"  - {w['comment']} ({format_duration(w['timeSpentSeconds'])}, {date_str})")
+                        else:
+                            lines.append(f"  - {w['comment']}")
 
         if issues:
             lines.append("")
@@ -242,11 +247,12 @@ def _render_node(node, path_parts, depth, grand_total, lines, skip_worklogs,
     for child_name in sorted(children.keys()):
         _render_node(children[child_name], path_parts + [child_name],
                      depth + 1, grand_total, lines, skip_worklogs,
-                     allocation=allocation)
+                     allocation=allocation, worklog_time=worklog_time)
 
 
 def generate_report(start_date, end_date, worklogs_by_issue, sections,
-                    skip_worklogs=False, level=1, allocation=False):
+                    skip_worklogs=False, level=1, allocation=False,
+                    worklog_time=False):
     """Generate the Markdown report string."""
     lines = []
 
@@ -279,7 +285,7 @@ def generate_report(start_date, end_date, worklogs_by_issue, sections,
 
     # Render tree into Markdown
     _render_node(root, [], 0, grand_total, lines, skip_worklogs,
-                 allocation=allocation)
+                 allocation=allocation, worklog_time=worklog_time)
 
     return "\n".join(lines)
 
@@ -331,7 +337,8 @@ def main():
     report = generate_report(start_date, end_date, worklogs_by_issue, sections,
                              skip_worklogs=arguments['--skip-worklogs'],
                              level=level,
-                             allocation=arguments['--allocation'])
+                             allocation=arguments['--allocation'],
+                             worklog_time=arguments['--worklog-time'])
     print(report)
 
     return 0
