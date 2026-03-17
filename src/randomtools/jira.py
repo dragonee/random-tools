@@ -20,6 +20,8 @@ Commands in shell:
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
     alias ISSUE NAME        - Create alias for issue (reassigns if alias exists)
     unalias NAME            - Remove an alias
+    mv ISSUE TRANSITION     - Transition issue (e.g., "mv ABC-123 Done")
+    done ISSUE              - Shortcut for "mv ISSUE Done"
     queue                   - Show pending/failed worklogs
     queue flush             - Send all pending worklogs now
     queue retry             - Reset failed items for retry
@@ -418,7 +420,7 @@ def get_issue_details(config, issue_keys):
 
     params = {
         "jql": jql,
-        "fields": "key,summary,description",
+        "fields": "key,summary,description,status",
         "maxResults": len(issue_keys)
     }
 
@@ -436,9 +438,12 @@ def get_issue_details(config, issue_keys):
                 # Extract description text from Atlassian Document Format
                 description = extract_text_from_adf(issue['fields'].get('description', ''))
 
+                status = issue['fields'].get('status', {}).get('name', '')
+
                 issue_details[issue_key] = {
                     'summary': summary,
-                    'description': description
+                    'description': description,
+                    'status': status
                 }
 
             # Update cache with fetched details
@@ -558,6 +563,7 @@ def list_worklogs(args, config):
                 all_issues[issue_key] = {
                     'summary': issue_data['summary'],
                     'description': issue_data.get('description', ''),
+                    'status': issue_data.get('status', ''),
                     'source': 'cached'
                 }
     
@@ -576,13 +582,20 @@ def list_worklogs(args, config):
         for issue_key in sorted(all_issues.keys()):
             issue_info = all_issues[issue_key]
             source_indicator = "*" if issue_info['source'] == 'saved' else ""
-            
+            is_done = issue_info.get('status', '').lower() == 'done'
+
             issue_aliases = reverse_aliases.get(issue_key, [])
             alias_str = f" [{', '.join(sorted(issue_aliases))}]" if issue_aliases else ""
-            if 'summary' in issue_info:
-                print(f"  \033[1m{issue_key}\033[0m{alias_str}: {issue_info['summary']} {source_indicator}")
+            if is_done:
+                if 'summary' in issue_info:
+                    print(f"  \033[90m{issue_key}{alias_str}: {issue_info['summary']} {source_indicator}\033[0m")
+                else:
+                    print(f"  \033[90m{issue_key}{alias_str} (details not available) {source_indicator}\033[0m")
             else:
-                print(f"  \033[1m{issue_key}\033[0m{alias_str} (details not available) {source_indicator}")
+                if 'summary' in issue_info:
+                    print(f"  \033[1m{issue_key}\033[0m{alias_str}: {issue_info['summary']} {source_indicator}")
+                else:
+                    print(f"  \033[1m{issue_key}\033[0m{alias_str} (details not available) {source_indicator}")
         
         # Show cache info if we have cached items
         cached_count = sum(1 for v in all_issues.values() if v['source'] == 'cached')
@@ -790,6 +803,77 @@ def unalias_issue(args, config):
     else:
         print(f"Alias '{name}' not found")
 
+def mv_issue(args, config):
+    """Transition issue to a given status."""
+    if len(args) < 2:
+        print("Usage: mv ISSUE TRANSITION")
+        return
+
+    issue = args[0].upper()
+    target = " ".join(args[1:])
+
+    # Find the matching transition
+    url = f"{config.base_url}/rest/api/3/issue/{issue}/transitions"
+    auth = HTTPBasicAuth(config.email, config.api_token)
+    headers = {"Accept": "application/json"}
+
+    try:
+        response = requests.get(url, headers=headers, auth=auth)
+
+        if response.status_code != 200:
+            if response.status_code == 404:
+                print(f"Issue \033[1m{issue}\033[0m not found")
+            else:
+                print(f"Failed to get transitions for \033[1m{issue}\033[0m. Status: {response.status_code}")
+            return
+
+        transitions = response.json().get('transitions', [])
+        matched = None
+        for t in transitions:
+            if t['name'].lower() == target.lower():
+                matched = t
+                break
+
+        if matched is None:
+            print(f"No '{target}' transition available for \033[1m{issue}\033[0m")
+            print("Available transitions:")
+            for t in transitions:
+                print(f"  {t['name']}")
+            return
+
+        # Execute the transition
+        headers["Content-Type"] = "application/json"
+        payload = {"transition": {"id": matched['id']}}
+        response = requests.post(url, json=payload, headers=headers, auth=auth)
+
+        if response.status_code == 204:
+            print(f"Transitioned \033[1m{issue}\033[0m to {matched['name']}")
+        else:
+            print(f"Failed to transition \033[1m{issue}\033[0m. Status: {response.status_code}")
+            print(f"Response: {response.text}")
+            return
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to Jira API: {e}")
+        return
+
+def done_issue(args, config):
+    """Transition issue to Done and remove from saved issues."""
+    if not args:
+        print("Usage: done ISSUE")
+        return
+
+    issue = args[0].upper()
+    mv_issue([issue, 'Done'], config)
+
+    # Remove from saved issues
+    saved_issues = load_json_set(SAVED_ISSUES_FILE)
+    if issue in saved_issues:
+        saved_issues.remove(issue)
+        save_json_set(SAVED_ISSUES_FILE, saved_issues)
+        print(f"Removed \033[1m{issue}\033[0m from saved issues")
+
+
 def get_recent_issues(config, days=7):
     """Get issues from the last N days that the user has worked on."""
     end_date = datetime.date.today()
@@ -813,7 +897,7 @@ def get_recent_issues(config, days=7):
         while True:
             params = {
                 "jql": jql,
-                "fields": "key,summary,description",
+                "fields": "key,summary,description,status",
                 "maxResults": max_results
             }
 
@@ -831,11 +915,13 @@ def get_recent_issues(config, days=7):
 
                     # Extract description text from Atlassian Document Format
                     description = extract_text_from_adf(issue['fields'].get('description', ''))
+                    status = issue['fields'].get('status', {}).get('name', '')
 
                     all_issues.append({
                         'key': issue_key,
                         'summary': summary,
-                        'description': description
+                        'description': description,
+                        'status': status
                     })
 
                 # Check if we have more results using nextPageToken
@@ -1042,6 +1128,8 @@ commands = {
     'exclude': exclude_issue,
     'remove': remove_issue,
     'create': create_issue,
+    'mv': mv_issue,
+    'done': done_issue,
     'update': update_cache,
     'alias': alias_issue,
     'unalias': unalias_issue,
