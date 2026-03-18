@@ -51,6 +51,7 @@ Configuration:
 """
 
 import datetime
+import os
 import re
 import subprocess
 import tempfile
@@ -127,6 +128,29 @@ class WorkGoogleConfigFile:
             Path.home() / '.google/config.ini',
         ]
 
+def get_local_timezone():
+    """Get the system's IANA timezone as a ZoneInfo object."""
+    tz_env = os.environ.get('TZ')
+    if tz_env:
+        try:
+            return ZoneInfo(tz_env)
+        except (KeyError, ValueError):
+            pass
+
+    localtime = Path('/etc/localtime')
+    if localtime.is_symlink():
+        target = str(localtime.resolve())
+        idx = target.find('zoneinfo/')
+        if idx != -1:
+            tz_name = target[idx + len('zoneinfo/'):]
+            try:
+                return ZoneInfo(tz_name)
+            except (KeyError, ValueError):
+                pass
+
+    return datetime.datetime.now().astimezone().tzinfo
+
+
 def parse_time_duration(time_str):
     """Parse time duration string and return seconds.
 
@@ -181,8 +205,9 @@ def parse_date_time(time_str, day_str):
     target_date = parsed_date.date()
     naive_datetime = datetime.datetime.combine(target_date, datetime.time(hour, minute))
 
-    # Add local timezone information
-    return naive_datetime.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
+    # Add local timezone information (IANA-aware, handles DST correctly)
+    local_tz = get_local_timezone()
+    return naive_datetime.replace(tzinfo=local_tz)
 
 def is_existing_issue(project_or_issue):
     """Check if the argument is an existing issue key (e.g., ABC-123) or a project key."""
@@ -395,6 +420,76 @@ def create_calendar_event(calendar_service, calendar_id, start_time, end_time,
 
     except HttpError as error:
         raise Exception(f"Error creating calendar event: {error}")
+
+
+def query_freebusy(calendar_service, emails, time_min, time_max):
+    """Query FreeBusy API for the given window. Returns {email: [(start, end), ...]}."""
+    body = {
+        "timeMin": time_min.isoformat(),
+        "timeMax": time_max.isoformat(),
+        "items": [{"id": email} for email in emails],
+    }
+    result = calendar_service.freebusy().query(body=body).execute()
+
+    busy_periods = {}
+    for email in emails:
+        periods = []
+        for p in result.get('calendars', {}).get(email, {}).get('busy', []):
+            periods.append((
+                datetime.datetime.fromisoformat(p['start']),
+                datetime.datetime.fromisoformat(p['end']),
+            ))
+        if periods:
+            busy_periods[email] = periods
+    return busy_periods
+
+
+def find_conflicts(busy_periods, start_time, end_time):
+    """From pre-fetched busy periods, find which overlap with [start_time, end_time)."""
+    conflicts = {}
+    for email, periods in busy_periods.items():
+        overlapping = [(s, e) for s, e in periods if s < end_time and e > start_time]
+        if overlapping:
+            conflicts[email] = overlapping
+    return conflicts
+
+
+def find_available_slot(busy_periods, date, duration, tz):
+    """From pre-fetched busy periods, find the first available slot between 10:00-17:00.
+
+    Returns (start, end) or None.
+    """
+    window_start = datetime.datetime.combine(date, datetime.time(10, 0), tzinfo=tz)
+    window_end = datetime.datetime.combine(date, datetime.time(17, 0), tzinfo=tz)
+
+    all_busy = []
+    for periods in busy_periods.values():
+        all_busy.extend(periods)
+    all_busy.sort()
+
+    merged = []
+    for start, end in all_busy:
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+
+    candidate = window_start
+    for busy_start, busy_end in merged:
+        if candidate + duration <= busy_start:
+            return candidate, candidate + duration
+        if busy_end > candidate:
+            candidate = busy_end.astimezone(tz)
+            mins = candidate.minute
+            remainder = mins % 15
+            if remainder:
+                candidate += datetime.timedelta(minutes=15 - remainder)
+                candidate = candidate.replace(second=0, microsecond=0)
+
+    if candidate + duration <= window_end:
+        return candidate, candidate + duration
+
+    return None
 
 
 # --- Jira ---
@@ -703,8 +798,8 @@ def main():
             end_time_parts = time_args[1].split(':')
             end_hour = int(end_time_parts[0])
             end_minute = int(end_time_parts[1])
-            end_time = datetime.datetime.combine(
-                start_time.date(), datetime.time(end_hour, end_minute))
+            end_time = start_time.replace(
+                hour=end_hour, minute=end_minute, second=0, microsecond=0)
             if end_time <= start_time:
                 raise ValueError("End time must be after start time")
         else:
@@ -780,6 +875,71 @@ def main():
             slack_config = SlackConfigFile()
             channel_id, _ = find_channel_by_name(slack_config.token, config.slack_channel)
 
+        # Initialize calendar service and target calendar
+        calendar_name_or_id = calendar_override or google_config.selected_calendar
+        calendar_to_use = google_config.get_calendar_id(calendar_name_or_id)
+        calendar_service = get_google_calendar_service(google_config)
+
+        # Check attendee availability (including organizer's calendar)
+        all_attendee_emails = config.attendees + config.optional_attendees
+        freebusy_emails = [calendar_to_use] + all_attendee_emails
+        if all_attendee_emails:
+            duration = end_time - start_time
+            local_tz = start_time.tzinfo
+
+            while True:
+                # Single freebusy query for the full day window
+                day_start = datetime.datetime.combine(
+                    start_time.date(), datetime.time(10, 0), tzinfo=local_tz)
+                day_end = datetime.datetime.combine(
+                    start_time.date(), datetime.time(17, 0), tzinfo=local_tz)
+
+                print(f"Checking availability for {start_time.strftime('%Y-%m-%d %H:%M')} - {end_time.strftime('%H:%M')}...")
+                busy_periods = query_freebusy(
+                    calendar_service, freebusy_emails, day_start, day_end)
+                conflicts = find_conflicts(busy_periods, start_time, end_time)
+
+                if not conflicts:
+                    print("All attendees are available.")
+                    break
+
+                print("\nFound conflicts:")
+                for email, periods in conflicts.items():
+                    for busy_start, busy_end in periods:
+                        print(f"  - {email} ({busy_start.astimezone(local_tz).strftime('%H:%M')}-{busy_end.astimezone(local_tz).strftime('%H:%M')})")
+
+                alternative = find_available_slot(
+                    busy_periods, start_time.date(), duration, local_tz)
+
+                if alternative:
+                    alt_start, alt_end = alternative
+                    print(f"\nFound another slot at {alt_start.strftime('%H:%M')} - {alt_end.strftime('%H:%M')}")
+                    choice = input("([R]eserve, Cancel) > ").strip().lower()
+                    if choice.startswith('c'):
+                        print(f"\n{content}")
+                        return 0
+                    else:
+                        start_time = alt_start
+                        end_time = alt_end
+                        break
+                else:
+                    print("\nCouldn't find suitable time slot on this day")
+                    choice = input("([N]ext day, pick a Date, Cancel) > ").strip().lower()
+                    if choice.startswith('n') or choice == '':
+                        next_day = start_time.date() + datetime.timedelta(days=1)
+                        while next_day.weekday() >= 5:  # skip Sat/Sun
+                            next_day += datetime.timedelta(days=1)
+                        start_time = datetime.datetime.combine(
+                            next_day, start_time.timetz())
+                        end_time = start_time + duration
+                    elif choice.startswith('d') or choice.startswith('ch'):
+                        new_day = input("Enter new day: ").strip()
+                        start_time = parse_date_time(start_time.strftime('%H:%M'), new_day)
+                        end_time = start_time + duration
+                    else:
+                        print(f"\n{content}")
+                        return 0
+
         # Get account ID for assignment
         account_id = None
         if config.assign_to_me:
@@ -809,12 +969,7 @@ def main():
         cal_description_parts.append(f"Jira: {issue_url}")
         cal_description = '\n\n'.join(cal_description_parts)
 
-        # Create calendar event
-        calendar_name_or_id = calendar_override or google_config.selected_calendar
-        calendar_to_use = google_config.get_calendar_id(calendar_name_or_id)
-
         print(f"Creating calendar event for {start_time.strftime('%Y-%m-%d %H:%M')} - {end_time.strftime('%H:%M')}...")
-        calendar_service = get_google_calendar_service(google_config)
         calendar_link, meet_link = create_calendar_event(
             calendar_service, calendar_to_use, start_time, end_time,
             event_title, cal_description,
