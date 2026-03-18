@@ -1,5 +1,19 @@
 # Random tools I made
 
+## Table of Contents
+
+- [Calendar availability](#calendar-availability)
+- [CSV/JSON tools](#csvjson-tools)
+- [File tools](#file-tools)
+- [SoDA mail matcher](#soda-mail-matcher)
+- [Jira Tools](#jira-tools)
+- [Git Tools](#git-tools)
+- [Clipboard utilities](#clipboard-utilities)
+- [Calamari Tools](#calamari-tools)
+- [Slack Tools](#slack-tools)
+- [Markdown utilities](#markdown-utilities)
+- [Other](#other)
+
 ## Calendar availability
 
 [$ make-readme -h 3 evenings]
