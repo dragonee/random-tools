@@ -89,6 +89,7 @@ class MeetingConfig:
     google_meet: bool = True
     assign_to_me: bool = True
     attendees: list = field(default_factory=list)
+    optional_attendees: list = field(default_factory=list)
 
 
 class WorkGoogleConfigFile:
@@ -271,12 +272,15 @@ def parse_template(content):
             continue
 
         if in_attendees:
-            match = re.match(r'^-\s+\[(x| )\]\s+(.*)', stripped)
+            match = re.match(r'^-\s+\[(x|~| )\]\s+(.*)', stripped)
             if match:
-                checked = match.group(1) == 'x'
+                marker = match.group(1)
                 email = match.group(2).strip()
-                if checked and email:
-                    config.attendees.append(email)
+                if email:
+                    if marker == 'x':
+                        config.attendees.append(email)
+                    elif marker == '~':
+                        config.optional_attendees.append(email)
             continue
 
         # Option checkboxes (before attendees section)
@@ -340,7 +344,8 @@ def get_google_calendar_service(config):
     return build('calendar', 'v3', credentials=creds)
 
 def create_calendar_event(calendar_service, calendar_id, start_time, end_time,
-                          title, description, google_meet=True, attendees=None):
+                          title, description, google_meet=True, attendees=None,
+                          optional_attendees=None):
     """Create a Google Calendar event."""
     timezone_name = start_time.tzinfo.key if hasattr(start_time.tzinfo, 'key') else 'UTC'
 
@@ -357,8 +362,9 @@ def create_calendar_event(calendar_service, calendar_id, start_time, end_time,
         },
     }
 
-    if attendees:
-        event['attendees'] = [{'email': email} for email in attendees]
+    if attendees or optional_attendees:
+        event['attendees'] = [{'email': email} for email in (attendees or [])]
+        event['attendees'] += [{'email': email, 'optional': True} for email in (optional_attendees or [])]
 
     if google_meet:
         event['conferenceData'] = {
@@ -813,6 +819,7 @@ def main():
             calendar_service, calendar_to_use, start_time, end_time,
             event_title, cal_description,
             google_meet=config.google_meet, attendees=config.attendees,
+            optional_attendees=config.optional_attendees,
         )
 
         print(f"✓ Issue: {issue_url}")
