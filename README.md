@@ -172,6 +172,8 @@ Commands in shell:
     calendar ARGS           - Create calendar event (calls jira-calendar with args)
     alias ISSUE NAME        - Create alias for issue (reassigns if alias exists)
     unalias NAME            - Remove an alias
+    mv ISSUE TRANSITION     - Transition issue (e.g., "mv ABC-123 Done")
+    done ISSUE              - Shortcut for "mv ISSUE Done"
     queue                   - Show pending/failed worklogs
     queue flush             - Send all pending worklogs now
     queue retry             - Reset failed items for retry
@@ -262,6 +264,7 @@ Options:
     --skip-worklogs         Don't print individual worklog descriptions.
     -S, --skip-categorization  Don't group worklogs into sections.
     -A, --allocation        Show only category totals (hide individual issues).
+    --worklog-time          Show time spent next to each worklog entry.
     --reset                 Ignore saved section mappings (start fresh).
 ```
 
@@ -471,6 +474,40 @@ Configuration:
       file: "snippets/readme.txt"
     
     simple_text: "This is just plain text"
+```
+
+## Calamari Tools
+
+### calamari-absences (1.0)
+
+```
+List Calamari absences for a team of people in a given period.
+
+Usage:
+    calamari-absences [options] EMPLOYEE...
+
+Options:
+    -d, --from-date DATE    Start date (YYYY-MM-DD) [default: today].
+    -D, --to-date DATE      End date (YYYY-MM-DD) [default: today].
+    --month                 Current calendar month.
+    --week                  Current calendar week.
+    -Y, --last              Previous period (with --month or --week).
+    -t, --team TEAM         Filter by team name (can be repeated).
+    -s, --status STATUS     Filter by status: PENDING, ACCEPTED, REJECTED [default: ACCEPTED].
+    -h, --help              Show this message.
+    --version               Show version information.
+
+Examples:
+    calamari-absences --month alice@example.com bob@example.com
+    calamari-absences --week --last alice@example.com
+    calamari-absences -d 2026-03-01 -D 2026-03-31 alice@example.com
+
+Configuration:
+    Create ~/.calamari/config.ini:
+
+    [Calamari]
+    tenant = your-tenant-name
+    api_key = your-api-key
 ```
 
 ## Slack Tools
