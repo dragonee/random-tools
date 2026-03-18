@@ -38,6 +38,7 @@ setup(
             'copier = randomtools.copier:main',
             'slack-channels = randomtools.slack_channels:main',
             'jira-report-weekly = randomtools.jira_report_weekly:main',
+            'calamari-absences = randomtools.calamari_absences:main',
         ],
     }
 )
