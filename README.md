@@ -370,6 +370,44 @@ Configuration:
     api_token = your-api-token
 ```
 
+### jira-harvest (1.0)
+
+```
+Sync Jira worklogs to Harvest time entries.
+
+Usage:
+    jira-harvest JIRA_PROJECT HARVEST_PROJECT [-w | -d DATE -D DATE] [--users USERS]
+    jira-harvest -h | --help
+    jira-harvest --version
+
+Arguments:
+    JIRA_PROJECT        Jira project key (e.g. PROJ)
+    HARVEST_PROJECT     Harvest project name (exact match, case-insensitive)
+
+Options:
+    -h --help           Show this message.
+    --version           Show version.
+    -w --week           Fetch worklogs for current week (Monday to today). This is the default.
+    -d DATE             Start date (YYYY-MM-DD).
+    -D DATE             End date (YYYY-MM-DD).
+    --users USERS       Comma-separated user emails. Defaults to Jira config email.
+
+Configuration:
+    Requires ~/.jira/config.ini (Jira credentials) and ~/.harvest/config.ini:
+
+        [Harvest]
+        personal_token = your_harvest_personal_access_token
+        account_id = your_harvest_account_id
+
+    Issue-to-task mappings are cached in ~/.harvest/mappings/.
+
+Examples:
+    jira-harvest PROJ "My Project"
+    jira-harvest PROJ "My Project" -w
+    jira-harvest PROJ "My Project" -d 2026-03-20 -D 2026-03-27
+    jira-harvest PROJ "My Project" --users me@example.com,other@example.com
+```
+
 ## Git Tools
 
 ### push (1.0)
