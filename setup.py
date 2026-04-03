@@ -40,6 +40,7 @@ setup(
             'jira-report-weekly = randomtools.jira_report_weekly:main',
             'calamari-absences = randomtools.calamari_absences:main',
             'jira-harvest = randomtools.jira_harvest:main',
+            'jira-harvest-check = randomtools.jira_harvest_check:main',
         ],
     }
 )
