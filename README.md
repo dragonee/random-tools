@@ -600,6 +600,34 @@ Configuration:
 
 ## Slack Tools
 
+### slack-send (1.0)
+
+```
+Send a message or file to a Slack channel.
+
+Usage:
+    slack-send [options] CHANNEL [TEXT...]
+    slack-send [options] CHANNEL -f FILE [TEXT...]
+
+Options:
+    -f FILE, --file FILE           Send FILE as a Slack file upload.
+    -h, --help                     Show this message.
+    --version                      Show version information.
+
+Arguments:
+    CHANNEL   Channel name or ID (e.g. general, #general, C01234ABCDE).
+    TEXT      Message text. If omitted and no --file, reads from stdin.
+              When used with --file, sent as the accompanying comment.
+
+Examples:
+    slack-send general "Hello, world!"
+    slack-send '#dev' "Deploy complete"
+    echo "Pipeline passed" | slack-send general
+    slack-send general -f report.md
+    slack-send general -f report.md "Weekly report"
+    echo "See attached" | slack-send general -f report.md
+```
+
 ### slack-channels (1.1)
 
 ```

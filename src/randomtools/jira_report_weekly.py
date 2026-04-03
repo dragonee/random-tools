@@ -20,10 +20,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import requests
 from docopt import docopt
 
 from .config.slack import SlackConfigFile
+from .slack import find_channel, upload_file, SlackAPIError
 
 VERSION = '1.0'
 
@@ -57,91 +57,6 @@ def open_editor(filepath):
     editor = os.environ.get('EDITOR', 'vi')
     result = subprocess.run([editor, str(filepath)])
     return result.returncode == 0
-
-
-def resolve_channel_id(token, channel):
-    """Resolve a channel name to its ID. Returns the input if already an ID."""
-    if channel.startswith('C') and channel[1:].isalnum():
-        return channel
-
-    headers = {'Authorization': f'Bearer {token}'}
-    cursor = None
-
-    while True:
-        params = {'limit': 200, 'types': 'public_channel,private_channel'}
-        if cursor:
-            params['cursor'] = cursor
-
-        resp = requests.get('https://slack.com/api/conversations.list',
-                            params=params, headers=headers)
-        resp.raise_for_status()
-        data = resp.json()
-
-        if not data.get('ok'):
-            print(f"Slack error (conversations.list): {data.get('error', 'unknown')}", file=sys.stderr)
-            return None
-
-        for ch in data.get('channels', []):
-            if ch['name'] == channel:
-                return ch['id']
-
-        cursor = data.get('response_metadata', {}).get('next_cursor')
-        if not cursor:
-            break
-
-    print(f"Slack channel '{channel}' not found.", file=sys.stderr)
-    return None
-
-
-def send_to_slack(token, channel, filepath):
-    """Upload a file to a Slack channel with an accompanying message."""
-    headers = {'Authorization': f'Bearer {token}'}
-
-    channel_id = resolve_channel_id(token, channel)
-    if not channel_id:
-        return False
-
-    content = filepath.read_bytes()
-
-    # Step 1: Get upload URL
-    resp = requests.get('https://slack.com/api/files.getUploadURLExternal', params={
-        'filename': filepath.name,
-        'length': len(content),
-    }, headers=headers)
-    resp.raise_for_status()
-    data = resp.json()
-
-    if not data.get('ok'):
-        print(f"Slack error (getUploadURL): {data.get('error', 'unknown')}", file=sys.stderr)
-        return False
-
-    upload_url = data['upload_url']
-    file_id = data['file_id']
-
-    # Step 2: Upload file content
-    resp = requests.post(upload_url, data=content, headers={
-        'Content-Type': 'application/octet-stream',
-    })
-    resp.raise_for_status()
-
-    # Step 3: Complete upload and share to channel
-    resp = requests.post('https://slack.com/api/files.completeUploadExternal', json={
-        'files': [{'id': file_id, 'title': filepath.stem}],
-        'channel_id': channel_id,
-        'initial_comment': 'Podsumowanie tygodnia',
-    }, headers={
-        **headers,
-        'Content-Type': 'application/json',
-    })
-    resp.raise_for_status()
-    data = resp.json()
-
-    if not data.get('ok'):
-        print(f"Slack error (completeUpload): {data.get('error', 'unknown')}", file=sys.stderr)
-        return False
-
-    print(f"Sent weekly report to #{channel}", file=sys.stderr)
-    return True
 
 
 def run_journal(sunday, filepath):
@@ -199,7 +114,17 @@ def main():
         print("No Slack channel configured. Set [Weekly Report] channel in ~/.slack/config.ini or use --channel.", file=sys.stderr)
         return 1
 
-    if not send_to_slack(slack_config.token, channel, filepath):
+    try:
+        channel_id, _ = find_channel(slack_config.token, channel)
+        upload_file(
+            slack_config.token, channel_id,
+            filepath.name, filepath.read_bytes(),
+            initial_comment='Podsumowanie tygodnia',
+            title=filepath.stem,
+        )
+        print(f"Sent weekly report to #{channel}", file=sys.stderr)
+    except SlackAPIError as e:
+        print(str(e), file=sys.stderr)
         return 1
 
     # Step 3b: Journal the entry
