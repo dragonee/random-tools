@@ -22,70 +22,11 @@ import sys
 import datetime
 
 from docopt import docopt
-import requests
 
 from .config.slack import SlackConfigFile
+from .slack import fetch_all_channels, fetch_last_message_ts
 
 VERSION = '1.1'
-
-
-def fetch_channels(token):
-    """Fetch all public channels using Slack conversations.list API with pagination.
-
-    Requires a user token (xoxp-...) to see all channels the user has access to.
-    """
-    channels = []
-    cursor = None
-    url = 'https://slack.com/api/conversations.list'
-
-    while True:
-        params = {
-            'types': 'public_channel,private_channel',
-            'exclude_archived': 'true',
-            'limit': 1000,
-        }
-
-        if cursor:
-            params['cursor'] = cursor
-
-        resp = requests.post(url, data=params, headers={
-            'Authorization': f'Bearer {token}',
-        })
-        resp.raise_for_status()
-        data = resp.json()
-
-        if not data.get('ok'):
-            print(f"Slack API error: {data.get('error', 'unknown')}", file=sys.stderr)
-            sys.exit(1)
-
-        channels.extend(data.get('channels', []))
-
-        cursor = data.get('response_metadata', {}).get('next_cursor')
-        if not cursor:
-            break
-
-    return channels
-
-
-def fetch_last_message_ts(token, channel_id):
-    """Fetch the timestamp of the last message in a channel."""
-    resp = requests.post('https://slack.com/api/conversations.history', data={
-        'channel': channel_id,
-        'limit': 1,
-    }, headers={
-        'Authorization': f'Bearer {token}',
-    })
-    resp.raise_for_status()
-    data = resp.json()
-
-    if not data.get('ok'):
-        return None
-
-    messages = data.get('messages', [])
-    if not messages:
-        return None
-
-    return float(messages[0]['ts'])
 
 
 def match_channels(channels, patterns):
@@ -155,7 +96,7 @@ def main():
             print(f"--days must be an integer, got: {days_filter}", file=sys.stderr)
             sys.exit(1)
 
-    channels = fetch_channels(config.token)
+    channels = fetch_all_channels(config.token)
     matched = match_channels(channels, patterns)
 
     if not matched:

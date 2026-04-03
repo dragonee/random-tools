@@ -74,6 +74,7 @@ from googleapiclient.errors import HttpError
 
 from .config.jira import JiraConfigFile
 from .config.slack import SlackConfigFile
+from .slack import find_channel, fetch_channel_members, post_message, SlackAPIError
 
 VERSION = '1.1'
 
@@ -647,73 +648,6 @@ def update_issue_description(jira_config, issue_key, description_text):
 
 # --- Slack ---
 
-def find_channel_by_name(token, channel_name):
-    """Find a Slack channel by name and return its ID."""
-    channel_name = channel_name.lstrip('#')
-    cursor = None
-    url = 'https://slack.com/api/conversations.list'
-
-    while True:
-        params = {
-            'types': 'public_channel,private_channel',
-            'exclude_archived': 'true',
-            'limit': 1000,
-        }
-        if cursor:
-            params['cursor'] = cursor
-
-        resp = requests.post(url, data=params, headers={
-            'Authorization': f'Bearer {token}',
-        })
-        resp.raise_for_status()
-        data = resp.json()
-
-        if not data.get('ok'):
-            raise Exception(f"Slack API error: {data.get('error', 'unknown')}")
-
-        for ch in data.get('channels', []):
-            if ch['name'] == channel_name:
-                return ch['id'], ch['name']
-
-        cursor = data.get('response_metadata', {}).get('next_cursor')
-        if not cursor:
-            break
-
-    raise Exception(f"Slack channel '{channel_name}' not found")
-
-
-def fetch_channel_members(token, channel_id):
-    """Fetch all member user IDs from a Slack channel."""
-    members = []
-    cursor = None
-    url = 'https://slack.com/api/conversations.members'
-
-    while True:
-        params = {
-            'channel': channel_id,
-            'limit': 1000,
-        }
-        if cursor:
-            params['cursor'] = cursor
-
-        resp = requests.post(url, data=params, headers={
-            'Authorization': f'Bearer {token}',
-        })
-        resp.raise_for_status()
-        data = resp.json()
-
-        if not data.get('ok'):
-            raise Exception(f"Slack API error fetching members: {data.get('error', 'unknown')}")
-
-        members.extend(data.get('members', []))
-
-        cursor = data.get('response_metadata', {}).get('next_cursor')
-        if not cursor:
-            break
-
-    return members
-
-
 def resolve_member_emails(slack_ids):
     """Resolve Slack user IDs to email addresses using whosename."""
     from whosename import name_of
@@ -747,20 +681,11 @@ def send_slack_notification(token, channel_id, title, description,
 
     text = '\n'.join(lines)
 
-    resp = requests.post('https://slack.com/api/chat.postMessage', json={
-        'channel': channel_id,
-        'text': text,
-    }, headers={
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    })
-    resp.raise_for_status()
-    data = resp.json()
-
-    if not data.get('ok'):
-        print(f"Warning: Could not send Slack message: {data.get('error', 'unknown')}")
-    else:
+    try:
+        post_message(token, channel_id, text)
         print(f"Sent meeting notification to Slack channel")
+    except SlackAPIError as e:
+        print(f"Warning: Could not send Slack message: {e.error}")
 
 
 # --- Main ---
@@ -828,7 +753,7 @@ def main():
             slack_config = SlackConfigFile()
 
             print(f"Looking up Slack channel: {slack_channel}...")
-            channel_id, resolved_name = find_channel_by_name(slack_config.token, slack_channel)
+            channel_id, resolved_name = find_channel(slack_config.token, slack_channel)
             print(f"Found channel: #{resolved_name}")
 
             print(f"Fetching channel members...")
@@ -873,7 +798,7 @@ def main():
         channel_id = None
         if config.slack_message and config.slack_channel:
             slack_config = SlackConfigFile()
-            channel_id, _ = find_channel_by_name(slack_config.token, config.slack_channel)
+            channel_id, _ = find_channel(slack_config.token, config.slack_channel)
 
         # Initialize calendar service and target calendar
         calendar_name_or_id = calendar_override or google_config.selected_calendar
