@@ -202,23 +202,26 @@ def find_account_id(jira_config, email):
     return None
 
 
-def find_project_worklogs(jira_config, project, users, start_date, end_date):
+def find_project_worklogs(jira_config, project, users, start_date, end_date, account_ids=None):
     """Find worklogs for a Jira project, filtered by users and date range."""
     start_str = start_date.strftime('%Y-%m-%d')
     end_str = end_date.strftime('%Y-%m-%d')
 
-    # Resolve all users to account IDs (needed for both JQL and client-side filtering)
-    account_id_set = set()
-    for email in users:
-        aid = find_account_id(jira_config, email)
-        if aid:
-            account_id_set.add(aid)
+    if account_ids:
+        account_id_set = set(account_ids)
+    else:
+        # Resolve all users to account IDs (needed for both JQL and client-side filtering)
+        account_id_set = set()
+        for email in users:
+            aid = find_account_id(jira_config, email)
+            if aid:
+                account_id_set.add(aid)
 
     if not account_id_set:
         print("Error: could not resolve any user account IDs.", file=sys.stderr)
         return []
 
-    if len(users) == 1 and users[0] == jira_config.email:
+    if not account_ids and len(users) == 1 and users[0] == jira_config.email:
         author_clause = "worklogAuthor = currentUser()"
     else:
         quoted = ', '.join(f'"{aid}"' for aid in account_id_set)
