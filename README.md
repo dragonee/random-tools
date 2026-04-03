@@ -408,6 +408,42 @@ Examples:
     jira-harvest PROJ "My Project" --users me@example.com,other@example.com
 ```
 
+### jira-harvest-check (1.0)
+
+```
+Check discrepancies between Jira worklogs and Harvest time entries.
+
+Usage:
+    jira-harvest-check JIRA_PROJECT HARVEST_PROJECT [-w [-Y] | -m [-Y] | -d DATE -D DATE] [--users USERS | --all-jira-users] [--exact]
+    jira-harvest-check -h | --help
+    jira-harvest-check --version
+
+Arguments:
+    JIRA_PROJECT        Jira project key (e.g. PROJ)
+    HARVEST_PROJECT     Harvest project name (exact match, case-insensitive)
+
+Options:
+    -h --help           Show this message.
+    --version           Show version.
+    -w --week           Fetch for current week (Monday to Sunday). This is the default.
+    -m --month          Fetch for current month (1st to last day).
+    -Y --last           Use the previous period (last week with -w, last month with -m).
+    -d DATE             Start date (YYYY-MM-DD).
+    -D DATE             End date (YYYY-MM-DD).
+    --users USERS       Comma-separated user emails. Defaults to Jira config email.
+    --all-jira-users    Discover all users with worklogs in the Jira project for the period.
+    --exact             Show all day-level discrepancies, even if the total balances out.
+
+Configuration:
+    Requires ~/.jira/config.ini (Jira credentials) and ~/.harvest/config.ini.
+
+Examples:
+    jira-harvest-check PROJ "My Project"
+    jira-harvest-check PROJ "My Project" --all-jira-users
+    jira-harvest-check PROJ "My Project" -d 2026-03-20 -D 2026-03-27
+    jira-harvest-check PROJ "My Project" --users me@example.com,other@example.com
+```
+
 ## Git Tools
 
 ### push (1.0)
