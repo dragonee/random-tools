@@ -8,6 +8,7 @@ Options:
     --version               Show version information.
     --month                 Report for the current calendar month.
     --week                  Report for the current calendar week.
+    --days N                Report for the last N days (including today).
     -d, --from-date DATE    Start date (YYYY-MM-DD or relative).
     -D, --to-date DATE      End date (YYYY-MM-DD or relative).
     -Y, --last              Previous period (--month/--week) or yesterday.
@@ -80,6 +81,11 @@ def resolve_period(arguments):
             monday = monday - datetime.timedelta(weeks=1)
         sunday = monday + datetime.timedelta(days=6)
         return monday, sunday
+
+    if arguments['--days']:
+        n = int(arguments['--days'])
+        start_date = today - datetime.timedelta(days=n - 1)
+        return start_date, today
 
     from_date = arguments['--from-date']
     to_date = arguments['--to-date']
