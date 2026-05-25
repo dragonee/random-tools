@@ -271,6 +271,7 @@ Options:
     --version               Show version information.
     --month                 Report for the current calendar month.
     --week                  Report for the current calendar week.
+    --last-7-days           Report for the last 7 days (rolling, ending today).
     -d, --from-date DATE    Start date (YYYY-MM-DD or relative).
     -D, --to-date DATE      End date (YYYY-MM-DD or relative).
     -Y, --last              Previous period (--month/--week) or yesterday.
@@ -648,6 +649,54 @@ Examples:
     slack-channels general random
     slack-channels "proj-.*" --sort oldest
     slack-channels "team-" --days 30 --print date
+```
+
+### slack-channel-info (1.1)
+
+```
+Report activity tier, last message, and members for Slack channels.
+
+Reads channel names (one per line) from a file or stdin and prints, for each
+channel, an activity tier (dead/quiet/active/firehose) based on a recent
+message-count sample, the time of the last message, and the channel members'
+display names.
+
+Usage:
+    slack-channel-info [options]
+    slack-channel-info [options] -f FILE
+    slack-channel-info -h | --help
+    slack-channel-info --version
+
+Options:
+    -f FILE, --file FILE    Read channel names from FILE (default: stdin).
+    -d DAYS, --days DAYS    Window in days for activity sampling [default: 7].
+    -l N, --limit N         Max members listed per channel [default: 25].
+    --all-users             Include members with no resolvable display name
+                            (bots, integrations, Slack Connect users). By
+                            default these are skipped.
+    --format FORMAT         Output format: text, svg, png, jpg [default: text].
+                            For text, prints all channels to stdout.
+                            For svg/png/jpg, writes <channel-name>.<ext> per
+                            channel into --out-dir (default: current dir).
+    -o DIR, --out-dir DIR   Output directory for image formats [default: .].
+    --force                 Regenerate output files even if they already exist
+                            (image formats only). By default, channels whose
+                            output file is present are skipped entirely (no
+                            API calls).
+    -h, --help              Show this message.
+    --version               Show version information.
+
+Activity tiers (over the sample window):
+    dead      - no messages
+    quiet     - 1 to 10 messages
+    active    - 11 to 100 messages
+    firehose  - more than 100 messages (or response truncated)
+
+Examples:
+    echo -e "general\ndev" | slack-channel-info
+    slack-channel-info -f channels.txt --days 30 --limit 50
+    slack-channel-info -f channels.txt --format svg -o ./out
+    slack-channel-info -f channels.txt --format png
 ```
 
 ## Markdown utilities

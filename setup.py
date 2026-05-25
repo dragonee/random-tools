@@ -13,7 +13,7 @@ setup(
     ],
     packages=('randomtools', 'randomtools.config', 'randomtools.slack'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools', 'dateparser', 'pyyaml', 'whosename-client @ git+ssh://git@github.com/makimo/whose-name-client@main#egg=whosename-main'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'more-itertools', 'dateparser', 'pyyaml', 'pillow', 'resvg-py', 'whosename-client @ git+ssh://git@github.com/makimo/whose-name-client@main#egg=whosename-main'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
@@ -42,6 +42,7 @@ setup(
             'jira-harvest = randomtools.jira_harvest:main',
             'jira-harvest-check = randomtools.jira_harvest_check:main',
             'slack-send = randomtools.slack.send:main',
+            'slack-channel-info = randomtools.slack.info:main',
         ],
     }
 )

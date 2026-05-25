@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import requests
 
+from ._http import slack_get
 from .channels import SlackAPIError
 
 
@@ -31,11 +32,10 @@ def upload_file(token: str, channel_id: str, filename: str, content: bytes,
     headers = {'Authorization': f'Bearer {token}'}
 
     # Step 1: Get upload URL
-    resp = requests.get('https://slack.com/api/files.getUploadURLExternal', params={
+    resp = slack_get('https://slack.com/api/files.getUploadURLExternal', params={
         'filename': filename,
         'length': len(content),
     }, headers=headers)
-    resp.raise_for_status()
     data = resp.json()
 
     if not data.get('ok'):
