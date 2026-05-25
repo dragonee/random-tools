@@ -17,6 +17,8 @@ from .channels import (
     fetch_all_channels,
     fetch_channel_members,
     fetch_last_message_ts,
+    count_messages_since,
 )
 from .messages import post_message
 from .files import upload_file
+from .users import fetch_all_users, fetch_all_users_detailed

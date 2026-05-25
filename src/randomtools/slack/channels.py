@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import requests
+from ._http import slack_get
 
 
 class SlackAPIError(Exception):
@@ -59,9 +59,8 @@ def find_channel(token: str, channel_name: str) -> tuple[str, str | None]:
         if cursor:
             params['cursor'] = cursor
 
-        resp = requests.get('https://slack.com/api/conversations.list',
-                            params=params, headers=headers)
-        resp.raise_for_status()
+        resp = slack_get('https://slack.com/api/conversations.list',
+                         params=params, headers=headers)
         data = resp.json()
 
         if not data.get('ok'):
@@ -104,9 +103,8 @@ def fetch_all_channels(token: str, exclude_archived: bool = True) -> list[dict]:
         if cursor:
             params['cursor'] = cursor
 
-        resp = requests.get('https://slack.com/api/conversations.list',
-                            params=params, headers=headers)
-        resp.raise_for_status()
+        resp = slack_get('https://slack.com/api/conversations.list',
+                         params=params, headers=headers)
         data = resp.json()
 
         if not data.get('ok'):
@@ -146,9 +144,8 @@ def fetch_channel_members(token: str, channel_id: str) -> list[str]:
         if cursor:
             params['cursor'] = cursor
 
-        resp = requests.get('https://slack.com/api/conversations.members',
-                            params=params, headers=headers)
-        resp.raise_for_status()
+        resp = slack_get('https://slack.com/api/conversations.members',
+                         params=params, headers=headers)
         data = resp.json()
 
         if not data.get('ok'):
@@ -163,6 +160,45 @@ def fetch_channel_members(token: str, channel_id: str) -> list[str]:
     return members
 
 
+def count_messages_since(token: str, channel_id: str,
+                         oldest_ts: float) -> tuple[int, bool, float | None]:
+    """Count messages in a channel since ``oldest_ts``.
+
+    Issues a single ``conversations.history`` call with ``limit=1000``. The
+    ``has_more`` flag from the response is returned as-is, so callers can
+    distinguish "exactly N messages" from "at least N, possibly more".
+
+    Args:
+        token (str): Slack API token.
+        channel_id (str): Channel ID.
+        oldest_ts (float): Unix timestamp; only messages newer than this are
+            counted.
+
+    Returns:
+        tuple[int, bool, float | None]: ``(count, has_more, latest_ts)`` where
+        ``latest_ts`` is the timestamp of the most recent message in the
+        window, or ``None`` if there were none.
+
+    Raises:
+        SlackAPIError: On Slack API errors.
+    """
+    resp = slack_get('https://slack.com/api/conversations.history', params={
+        'channel': channel_id,
+        'oldest': oldest_ts,
+        'limit': 1000,
+    }, headers={
+        'Authorization': f'Bearer {token}',
+    })
+    data = resp.json()
+
+    if not data.get('ok'):
+        raise SlackAPIError('conversations.history', data.get('error', 'unknown'))
+
+    messages = data.get('messages', [])
+    latest_ts = float(messages[0]['ts']) if messages else None
+    return len(messages), bool(data.get('has_more', False)), latest_ts
+
+
 def fetch_last_message_ts(token: str, channel_id: str) -> float | None:
     """Fetch the timestamp of the last message in a channel.
 
@@ -174,13 +210,12 @@ def fetch_last_message_ts(token: str, channel_id: str) -> float | None:
         float | None: Unix timestamp of the last message, or ``None`` if the
         channel has no messages or the API call fails.
     """
-    resp = requests.get('https://slack.com/api/conversations.history', params={
+    resp = slack_get('https://slack.com/api/conversations.history', params={
         'channel': channel_id,
         'limit': 1,
     }, headers={
         'Authorization': f'Bearer {token}',
     })
-    resp.raise_for_status()
     data = resp.json()
 
     if not data.get('ok'):
