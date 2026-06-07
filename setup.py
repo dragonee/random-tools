@@ -41,6 +41,7 @@ setup(
             'calamari-absences = randomtools.calamari_absences:main',
             'jira-harvest = randomtools.jira_harvest:main',
             'jira-harvest-check = randomtools.jira_harvest_check:main',
+            'jira-task-users = randomtools.jira_task_users:main',
             'slack-send = randomtools.slack.send:main',
             'slack-channel-info = randomtools.slack.info:main',
         ],

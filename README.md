@@ -271,7 +271,7 @@ Options:
     --version               Show version information.
     --month                 Report for the current calendar month.
     --week                  Report for the current calendar week.
-    --last-7-days           Report for the last 7 days (rolling, ending today).
+    --days N                Report for the last N days (including today).
     -d, --from-date DATE    Start date (YYYY-MM-DD or relative).
     -D, --to-date DATE      End date (YYYY-MM-DD or relative).
     -Y, --last              Previous period (--month/--week) or yesterday.
@@ -443,6 +443,50 @@ Examples:
     jira-harvest-check PROJ "My Project" --all-jira-users
     jira-harvest-check PROJ "My Project" -d 2026-03-20 -D 2026-03-27
     jira-harvest-check PROJ "My Project" --users me@example.com,other@example.com
+```
+
+### jira-task-users (1.0)
+
+```
+Show per-user worklog totals for one or more Jira tasks or projects.
+
+For each task (or whole project), fetch all worklogs and report how much
+time each person has logged, in the form:
+
+    TASK-1:
+    - Person1: 12h
+    - Person2: 5h
+
+Usage:
+    jira-task-users TASK... [options]
+
+Arguments:
+    TASK  An issue key (e.g. ABC-123) or a project key (e.g. ABC). When a
+          project key is given, every issue in that project with logged time
+          is included.
+
+Options:
+    -h, --help          Show this message.
+    --version           Show version information.
+    --no-group          Report each TASK separately instead of pooling them
+                        into a single combined total.
+    --target TIME       Target time per user (e.g. 40h, 1.5h, or a bare number
+                        of hours like 40). Shows progress as [logged/target]
+                        and how many hours are remaining against it.
+    --missing-only      With --target, only show users below the target.
+    --users FILE        Restrict the report to users listed in FILE, one per
+                        line (emails or display names; blank lines and '#'
+                        comments ignored). Each line is resolved to a Jira
+                        account so emails match authors even when their email is
+                        hidden. With --target, users from FILE with no logged
+                        time are still shown as [0/TARGET].
+    --json              Output JSON instead of formatted text.
+
+Examples:
+    jira-task-users ABC-123
+    jira-task-users ABC-123 ABC-456 --no-group
+    jira-task-users ABC --target 40h --missing-only
+    jira-task-users ABC --users team.txt --target 40h --json
 ```
 
 ## Git Tools
