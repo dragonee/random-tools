@@ -6,11 +6,8 @@
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
-- [Jira Tools](#jira-tools)
 - [Git Tools](#git-tools)
 - [Clipboard utilities](#clipboard-utilities)
-- [Calamari Tools](#calamari-tools)
-- [Slack Tools](#slack-tools)
 - [Markdown utilities](#markdown-utilities)
 - [Other](#other)
 
@@ -47,26 +44,6 @@ maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
 
-## Jira Tools
-
-[$ make-readme -h 3 jira]
-
-[$ make-readme -h 3 jira-calendar]
-
-[$ make-readme -h 3 jira-report]
-
-[$ make-readme -h 3 jira-report-weekly]
-
-[$ make-readme -h 3 jira-dashboard-dates]
-
-[$ make-readme -h 3 jira-dashboard]
-
-[$ make-readme -h 3 jira-harvest]
-
-[$ make-readme -h 3 jira-harvest-check]
-
-[$ make-readme -h 3 jira-task-users]
-
 ## Git Tools
 
 [$ make-readme -h 3 push]
@@ -76,18 +53,6 @@ maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ## Clipboard utilities
 
 [$ make-readme -h 3 copier]
-
-## Calamari Tools
-
-[$ make-readme -h 3 calamari-absences]
-
-## Slack Tools
-
-[$ make-readme -h 3 slack-send]
-
-[$ make-readme -h 3 slack-channels]
-
-[$ make-readme -h 3 slack-channel-info]
 
 ## Markdown utilities
 
