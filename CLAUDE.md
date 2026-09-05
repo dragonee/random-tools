@@ -4,27 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Python package called `randomtools` - a collection of standalone command-line utilities for various maintenance and data processing tasks. The package is distributed via setuptools and installs console scripts for each tool.
+This is a Python package called `randomtools` - a collection of standalone command-line utilities for various maintenance and data processing tasks. The project is managed with uv, built with the `uv_build` backend, and installs console scripts for each tool.
 
 ## Development Commands
 
 ### Environment Setup
 ```bash
-# Create virtual environment
-python -m venv env
-source env/bin/activate  # On macOS/Linux
+# Create .venv and install the package with its dependencies
+uv sync
 
-# Install package in development mode
-pip install -e .
+# Run a tool inside that environment
+uv run evenings
 ```
 
 ### Build and Installation
 ```bash
-# Build the package
-python setup.py build
+# Build the sdist and wheel into dist/
+uv build
 
-# Install the package
-python setup.py install
+# Put the tools on PATH, following the working tree
+uv tool install --editable .
 ```
 
 ## Architecture
@@ -33,7 +32,7 @@ python setup.py install
 - `src/randomtools/` - Main package directory containing all tools
 - `src/randomtools/config/` - Configuration handling, particularly for Google API integration
 - Each tool is implemented as a standalone Python module with a `main()` function
-- All console entry points are defined in `setup.py`
+- All console entry points are defined in `pyproject.toml` under `[project.scripts]`
 
 ### Tool Categories
 
@@ -58,6 +57,9 @@ python setup.py install
 - `google-*` packages - Google Calendar API integration
 - `thefuzz` - Fuzzy string matching
 - `requests` - HTTP requests
+- `openpyxl` - Writing xlsx workbooks
+
+Dependencies live in `[project] dependencies` in `pyproject.toml`; add them with `uv add <package>`.
 
 ### Configuration
 - Google Calendar tools require `~/.google/config.ini` with Google API credentials
@@ -67,5 +69,5 @@ python setup.py install
 
 - Each tool follows the docopt pattern with help strings as module docstrings
 - Tools are designed to be independent utilities, not part of a larger framework
-- The build directory contains compiled versions but development should use the src directory
-- Version numbers are maintained in individual tool docstrings and setup.py
+- `uv build` writes to `dist/`; the stale `build/` directory is a leftover from setuptools
+- Version numbers are maintained in individual tool docstrings and pyproject.toml

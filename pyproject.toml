@@ -1,0 +1,50 @@
+[project]
+name = "randomtools"
+version = "1.0.0"
+description = "A package that provides all maintenance tasks"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Michał Moroz", email = "michal@makimo.pl" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "docopt",
+    "thefuzz",
+    "requests",
+    "pydantic",
+    "google-auth",
+    "google-auth-oauthlib",
+    "google-api-python-client",
+    "pyyaml",
+    "openpyxl",
+]
+
+[project.scripts]
+evenings = "randomtools.calendar_availability:main"
+copiesfromcsv = "randomtools.copiesfromcsv:main"
+sodamatcher = "randomtools.sodamatcher:main"
+movetoguids = "randomtools.movetoguids:main"
+maptocsvcolumn = "randomtools.maptocsvcolumn:main"
+maptocsv = "randomtools.maptocsv:main"
+onelinesummary = "randomtools.onelinesummary:main"
+pdfrepeat = "randomtools.pdfrepeat:main"
+usecase = "randomtools.usecase:main"
+wish = "randomtools.wish:main"
+qr = "randomtools.qr:main"
+push = "randomtools.push:main"
+github-synchronize = "randomtools.github_synchronize:main"
+copier = "randomtools.copier:main"
+dumper = "randomtools.gdrive.dumper:main"
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "randomtools"
