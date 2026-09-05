@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Calendar availability](#calendar-availability)
+- [Google Drive](#google-drive)
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
@@ -14,6 +15,40 @@
 ## Calendar availability
 
 [$ make-readme -h 3 evenings]
+
+## Google Drive
+
+[$ make-readme -h 3 dumper]
+
+### Listing links in a file
+
+`--input` takes a YAML file, where a link can carry the name its files are
+written under:
+
+```yaml
+links:
+  - https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit
+  - name: Weekly retro
+    link: https://docs.google.com/document/d/1BcDeFgHiJkLmNoPqRsTuVwXyZa/edit
+  - name: Team survey
+    link: https://docs.google.com/forms/d/1CdEfGhIjKlMnOpQrStUvWxYzAb/edit
+  - https://drive.google.com/drive/folders/1DeFgHiJkLmNoPqRsTuVwXyZaBc
+```
+
+A plain map of names to links does the same:
+
+```yaml
+Weekly retro: https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit
+Budget 2026: https://docs.google.com/spreadsheets/d/1BcDeFgHiJkLmNoPqRsTuVwXyZa/edit
+```
+
+A list of bare links, with no names, works too - and so does a plain text
+file with one link per line, `#` starting a comment.
+
+```
+dumper -i links.yml -o dump/ --sheet-format md --form-format dir
+dumper -i links.yml --concat -o everything.md
+```
 
 ## CSV/JSON tools
 

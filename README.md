@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Calendar availability](#calendar-availability)
+- [Google Drive](#google-drive)
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
@@ -31,6 +32,96 @@ Options:
     --hour-to HOUR        End hour [default: 22].
     -h, --help       Show this message.
     --version        Show version information.
+```
+
+## Google Drive
+
+### dumper (1.1)
+
+```
+Dump Google Drive files into local documents.
+
+Usage:
+    dumper [options] [<link>...]
+
+Options:
+    -c, --config SECTION   Section of ~/.google/config.ini to authorize with [default: Google].
+    -i, --input FILE       Read links from a YAML or plain text file ('-' for stdin).
+    -o, --output PATH      Where to write: a directory (default: .), or the file
+                           to write into with --concat (default: stdout).
+    --sheet-format FORMAT  Dump spreadsheets as xlsx, csv or md [default: xlsx].
+    --form-format FORMAT   Dump form responses as xlsx, dir or md [default: xlsx].
+    --concat               Write everything into a single markdown stream.
+    -q, --quiet            Do not report what was written.
+    -h, --help             Show this message.
+    --version              Show version information.
+
+Links come from the command line, from a file given with --input, or from
+standard input, one per line:
+
+    dumper --config WorkGoogle https://docs.google.com/document/d/ID/edit
+    cat links.txt | dumper -o dump/
+    dumper -i links.yml -o dump/
+
+The --input file is a list of links, a list of {name, link} maps, or a
+name -> link map when it is YAML; one link per line (# comments allowed)
+otherwise.
+
+What each kind of file becomes:
+
+    Document      markdown
+    Spreadsheet   an xlsx file, a csv file per tab, or a markdown table per tab
+    Form          an xlsx file of responses, a markdown document, or a
+                  directory holding one markdown file per question and one
+                  per respondent
+    Presentation  pdf, as Drive exports it
+    Anything else downloaded in the format it is stored in
+
+A folder is walked to the bottom, subfolders becoming subdirectories of the
+output; shortcuts are followed to what they point at. A file that cannot be
+dumped is reported and the rest of the folder still runs.
+
+With --concat every file is rendered as markdown and written to one place,
+which is what --sheet-format md and --form-format md do on their own. The
+folder structure flattens into one stream, and files that are not text are
+reported and left out.
+
+The config section holds the paths to the OAuth client and to the token
+cached from it, so several accounts can each have their own section:
+
+    [WorkGoogle]
+    token_path = ~/.google/work-token.pickle
+    credentials_path = ~/.google/work-credentials.json
+```
+
+### Listing links in a file
+
+`--input` takes a YAML file, where a link can carry the name its files are
+written under:
+
+```yaml
+links:
+  - https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit
+  - name: Weekly retro
+    link: https://docs.google.com/document/d/1BcDeFgHiJkLmNoPqRsTuVwXyZa/edit
+  - name: Team survey
+    link: https://docs.google.com/forms/d/1CdEfGhIjKlMnOpQrStUvWxYzAb/edit
+  - https://drive.google.com/drive/folders/1DeFgHiJkLmNoPqRsTuVwXyZaBc
+```
+
+A plain map of names to links does the same:
+
+```yaml
+Weekly retro: https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit
+Budget 2026: https://docs.google.com/spreadsheets/d/1BcDeFgHiJkLmNoPqRsTuVwXyZa/edit
+```
+
+A list of bare links, with no names, works too - and so does a plain text
+file with one link per line, `#` starting a comment.
+
+```
+dumper -i links.yml -o dump/ --sheet-format md --form-format dir
+dumper -i links.yml --concat -o everything.md
 ```
 
 ## CSV/JSON tools

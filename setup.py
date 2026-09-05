@@ -11,9 +11,9 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
     ],
-    packages=('randomtools', 'randomtools.config'),
+    packages=('randomtools', 'randomtools.config', 'randomtools.gdrive'),
     package_dir={'': 'src'},
-    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'pyyaml'],
+    install_requires=['docopt', 'thefuzz', 'requests', 'pydantic', 'google-auth', 'google-auth-oauthlib', 'google-api-python-client', 'pyyaml', 'openpyxl'],
     python_requires='>=3',
     entry_points={
         'console_scripts': [
@@ -31,6 +31,7 @@ setup(
             'push = randomtools.push:main',
             'github-synchronize = randomtools.github_synchronize:main',
             'copier = randomtools.copier:main',
+            'dumper = randomtools.gdrive.dumper:main',
         ],
     }
 )
