@@ -24,7 +24,8 @@ Arguments:
             reads the same. Only green, yellow, red and disqualify are known.
 
 Options:
-    -n, --now          Start counting right away instead of waiting for Space.
+    -s, --start        Start counting as the program runs, not on Space.
+    -n, --now          A synonym for --start.
     --no-notify        Do not post macOS notifications when a flag is passed.
     --no-caffeinate    Do not keep the machine awake while the timer runs.
     -h, --help         Show this screen.
@@ -43,7 +44,7 @@ carries Script Editor's icon, since `osascript` is what posts it; install
 Examples:
     timer 12m 15m 18m 22m
     timer 10 12 15
-    timer -n 6m30s
+    timer -s 6m30s
     timer settings.toml
 """
 
@@ -445,6 +446,10 @@ def main():
     )
     print("%s  %s" % (colourise(PROG, DIM, colour), header))
 
+    # --start and --now are two spellings of the one thing; with no
+    # keyboard to press there is nothing to wait for either.
+    start_now = arguments['--start'] or arguments['--now']
+
     caffeinate = None if arguments['--no-caffeinate'] else start_caffeinate()
 
     try:
@@ -453,7 +458,7 @@ def main():
                 reader,
                 Notifier(enabled=not arguments['--no-notify']),
                 flags,
-                start_now=arguments['--now'] or not reader.live,
+                start_now=start_now or not reader.live,
                 colour=colour,
             )
     finally:
