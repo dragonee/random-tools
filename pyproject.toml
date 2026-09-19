@@ -23,6 +23,7 @@ dependencies = [
     "google-api-python-client",
     "pyyaml",
     "openpyxl",
+    "more-itertools",
 ]
 
 [project.scripts]
