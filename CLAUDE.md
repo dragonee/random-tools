@@ -47,6 +47,9 @@ uv tool install --editable .
 - `movetoguids` - Copy files to GUID-named files with JSON mapping
 - `pdfrepeat` - PDF processing utility
 
+**Containers:**
+- `h` / `container` (`container.py`) - run commands in a docker container described by a `.container.ini`; `h init` writes one from `examples/container.ini`, which ships inside the package
+
 **Markdown/Documentation:**
 - `onelinesummary` - Generate markdown summaries of directory contents
 - `usecase` - Extract use cases from markdown files
@@ -68,6 +71,8 @@ Dependencies live in `[project] dependencies` in `pyproject.toml`; add them with
 ## Development Notes
 
 - Each tool follows the docopt pattern with help strings as module docstrings
+  (`h` is the exception: it forwards arbitrary arguments to docker, so it parses
+  argv itself and prints its docstring for `--help`)
 - Tools are designed to be independent utilities, not part of a larger framework
 - `uv build` writes to `dist/`; the stale `build/` directory is a leftover from setuptools
 - Version numbers are maintained in individual tool docstrings and pyproject.toml

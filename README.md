@@ -7,6 +7,7 @@
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
+- [Containers](#containers)
 - [Git Tools](#git-tools)
 - [Clipboard utilities](#clipboard-utilities)
 - [Markdown utilities](#markdown-utilities)
@@ -246,6 +247,67 @@ sodamatcher -p soda/emails.json soda/users.csv soda/domain_map.json
 maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
+
+## Containers
+
+### h (1.0)
+
+```
+Run things inside the docker container described by .container.ini.
+
+Usage:
+    h [COMMAND] [ARGUMENTS ...]
+    h init [FILE]
+    h -h | --help
+    h --version
+
+Examples:
+    h sh                   a shell in the container
+    h mix test             a configured command, with arguments
+    h logs                 follow its output
+    h cp local.txt         copy a file in
+    h init                 write a starter .container.ini here
+
+`h` on its own lists the commands the config file defines, alongside the
+built-in ones: id, logs, cp, start, stop, restart and init.
+
+The config file is looked up in the current directory, then its parents;
+$CONTAINER_INI overrides all of that.
+
+    [General]
+    name = ^myapp-app-1$      ; docker's name filter, which it reads as a regex
+    workdir = /app            ; default cwd for exec, default target for cp
+
+    [sh]
+    program = bash            ; h sh -> docker exec -it <id> bash
+    help = a shell in the container
+
+Every section other than [General] names a command. `program` is the only
+required key; `help`, `tty`, `user`, `workdir` and `env` are optional, and
+`user`, `workdir` and `env` may also be set in [General] as defaults.
+
+`tty` is auto by default: the -t flag is passed only when this script is
+itself attached to a terminal, so `h mix test` is interactive at a prompt
+and pipes cleanly from cron or CI without needing a second no-tty command.
+
+Options:
+    -h, --help     Show this message.
+    --version      Show version information.
+```
+
+`h init` writes a starter `.container.ini` — the same file as
+[`src/randomtools/examples/container.ini`](src/randomtools/examples/container.ini) —
+which you then point at your own container:
+
+```
+h init
+docker ps                 # find the container's name
+$EDITOR .container.ini    # name = ^myapp-app-1$
+h                         # lists what you can now run in it
+```
+
+`container` is installed as a second name for the same tool, for when a
+one-letter `h` is already taken on your machine.
 
 ## Git Tools
 

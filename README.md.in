@@ -7,6 +7,7 @@
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
+- [Containers](#containers)
 - [Git Tools](#git-tools)
 - [Clipboard utilities](#clipboard-utilities)
 - [Markdown utilities](#markdown-utilities)
@@ -78,6 +79,24 @@ sodamatcher -p soda/emails.json soda/users.csv soda/domain_map.json
 maptocsvcolumn --first-row link soda/users.csv soda/emails.json soda/mailing.csv
 maptocsv -k email -v link soda/domain_map.json soda/domain_map.csv
 ```
+
+## Containers
+
+[$ make-readme -h 3 h]
+
+`h init` writes a starter `.container.ini` — the same file as
+[`src/randomtools/examples/container.ini`](src/randomtools/examples/container.ini) —
+which you then point at your own container:
+
+```
+h init
+docker ps                 # find the container's name
+$EDITOR .container.ini    # name = ^myapp-app-1$
+h                         # lists what you can now run in it
+```
+
+`container` is installed as a second name for the same tool, for when a
+one-letter `h` is already taken on your machine.
 
 ## Git Tools
 

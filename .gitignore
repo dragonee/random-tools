@@ -152,3 +152,6 @@ soda/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 .DS_Store
+
+# a local container config, private to whatever project you point h at
+.container.ini

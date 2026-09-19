@@ -41,6 +41,8 @@ push = "randomtools.push:main"
 github-synchronize = "randomtools.github_synchronize:main"
 copier = "randomtools.copier:main"
 dumper = "randomtools.gdrive.dumper:main"
+h = "randomtools.container:main"
+container = "randomtools.container:main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]
