@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Calendar availability](#calendar-availability)
+- [Timers](#timers)
 - [Google Drive](#google-drive)
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
@@ -16,6 +17,10 @@
 ## Calendar availability
 
 [$ make-readme -h 3 evenings]
+
+## Timers
+
+[$ make-readme -h 3 timer]
 
 ## Google Drive
 

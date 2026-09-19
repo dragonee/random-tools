@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Calendar availability](#calendar-availability)
+- [Timers](#timers)
 - [Google Drive](#google-drive)
 - [CSV/JSON tools](#csvjson-tools)
 - [File tools](#file-tools)
@@ -33,6 +34,59 @@ Options:
     --hour-to HOUR        End hour [default: 22].
     -h, --help       Show this message.
     --version        Show version information.
+```
+
+## Timers
+
+### timer (1.0)
+
+```
+A console stopwatch with flag times, like a race control clock.
+
+Usage:
+    timer [options] TIME...
+    timer [options] FILE
+    timer -h | --help
+    timer --version
+
+Arguments:
+    TIME    Up to four times, in this order: green, yellow, red, disqualify.
+            Bare numbers are minutes, so `timer 10 12 15` counts 10, 12 and
+            15 minutes. Units and combinations work too: 90s, 6m30s,
+            "6m 30s", 1h5m, 12:30 (mm:ss) and 1:02:30 (hh:mm:ss).
+    FILE    A settings file with the same times under a [flags] section:
+
+                [flags]
+                green = 12m
+                yellow = 15m
+                red = 18m
+                disqualify = 22m
+
+            Quoted values are fine as well, so a .toml file written that way
+            reads the same. Only green, yellow, red and disqualify are known.
+
+Options:
+    -n, --now          Start counting right away instead of waiting for Space.
+    --no-notify        Do not post macOS notifications when a flag is passed.
+    --no-caffeinate    Do not keep the machine awake while the timer runs.
+    -h, --help         Show this screen.
+    --version          Show version.
+
+Keys:
+    Space    start the timer, and pause or resume it afterwards
+    q        quit (Ctrl-C works too)
+
+The clock keeps running past the last flag, so an overrun stays visible.
+If `caffeinate` is around the machine is kept awake for as long as the timer
+lives, and on macOS each flag also raises a notification. That notification
+carries Script Editor's icon, since `osascript` is what posts it; install
+`terminal-notifier` and it is posted through that instead.
+
+Examples:
+    timer 12m 15m 18m 22m
+    timer 10 12 15
+    timer -n 6m30s
+    timer settings.toml
 ```
 
 ## Google Drive
