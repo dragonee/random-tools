@@ -24,6 +24,8 @@ dependencies = [
     "pyyaml",
     "openpyxl",
     "more-itertools",
+    "textual",
+    "tomli; python_version < '3.11'",
 ]
 
 [project.scripts]
@@ -45,6 +47,7 @@ dumper = "randomtools.gdrive.dumper:main"
 h = "randomtools.container:main"
 container = "randomtools.container:main"
 timer = "randomtools.timer:main"
+workbench = "randomtools.workbench:main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]
