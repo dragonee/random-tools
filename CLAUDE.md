@@ -50,6 +50,9 @@ uv tool install --editable .
 **Containers:**
 - `h` / `container` (`container.py`) - run commands in a docker container described by a `.container.ini`; `h init` writes one from `examples/container.ini`, which ships inside the package
 
+**Workbenches:**
+- `workbench` (`workbench.py`) - directories of symlinks for agents to work in; `use`/`add` keep what is on offer in `~/.workbench/config.toml`, `init` picks links in a Textual TUI and records them in `.workbench.toml`, `destroy` removes them. The TUI's light/dark themes and terminal colour detection are ported from the `panel` tool in `~/Kod/makimo.com`
+
 **Markdown/Documentation:**
 - `onelinesummary` - Generate markdown summaries of directory contents
 - `usecase` - Extract use cases from markdown files
@@ -61,6 +64,7 @@ uv tool install --editable .
 - `thefuzz` - Fuzzy string matching
 - `requests` - HTTP requests
 - `openpyxl` - Writing xlsx workbooks
+- `textual` - The `workbench` picker TUI; `tomli` stands in for `tomllib` below Python 3.11
 
 Dependencies live in `[project] dependencies` in `pyproject.toml`; add them with `uv add <package>`.
 

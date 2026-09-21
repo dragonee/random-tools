@@ -9,6 +9,7 @@
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
 - [Containers](#containers)
+- [Workbenches](#workbenches)
 - [Git Tools](#git-tools)
 - [Clipboard utilities](#clipboard-utilities)
 - [Markdown utilities](#markdown-utilities)
@@ -102,6 +103,33 @@ h                         # lists what you can now run in it
 
 `container` is installed as a second name for the same tool, for when a
 one-letter `h` is already taken on your machine.
+
+## Workbenches
+
+[$ make-readme -h 3 workbench]
+
+A workbench is a directory to start an agent in, holding links to only the
+repositories and notes a task needs. Say once where your things live, then
+pick for each workbench:
+
+```
+workbench use ~/Kod                  # every project in ~/Kod is on offer
+workbench add ~/notes/agents.md      # and this one file
+workbench init ~/benches/billing     # pick, then Ctrl+S
+```
+
+`.workbench.toml` in the workbench lists the links `init` made, which is what
+`init` reopens for editing and what `destroy` removes:
+
+```toml
+[[link]]
+name = "billing-api"
+path = "/Users/me/Kod/billing-api"
+```
+
+The picker comes in makimo.com's colours, a light and a dark scheme. Which one
+starts is asked of the terminal (OSC 11, then `COLORFGBG`, then the macOS
+appearance), `--theme` overrides that, and F2 switches while it runs.
 
 ## Git Tools
 

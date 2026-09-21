@@ -9,6 +9,7 @@
 - [File tools](#file-tools)
 - [SoDA mail matcher](#soda-mail-matcher)
 - [Containers](#containers)
+- [Workbenches](#workbenches)
 - [Git Tools](#git-tools)
 - [Clipboard utilities](#clipboard-utilities)
 - [Markdown utilities](#markdown-utilities)
@@ -363,6 +364,92 @@ h                         # lists what you can now run in it
 
 `container` is installed as a second name for the same tool, for when a
 one-letter `h` is already taken on your machine.
+
+## Workbenches
+
+### workbench (1.0)
+
+```
+Make workbenches for agents: directories of links to the places they need.
+
+Usage:
+    workbench use [DIR...]
+    workbench add [PATH...]
+    workbench remove PATH...
+    workbench list
+    workbench init [WORKBENCH] [--from=FILE] [--theme=SCHEME]
+    workbench destroy [WORKBENCH] [--keep]
+    workbench -h | --help
+    workbench --version
+
+Commands:
+    use       Offer every subdirectory of DIR for linking; the current
+              directory when no DIR is given.
+    add       Offer PATH itself, a file or a directory.
+    remove    Stop offering PATH, whichever of the two put it there.
+    list      Show what is on offer.
+    init      Pick what to link into WORKBENCH, the current directory by
+              default, and link it. The picks are written to .workbench.toml
+              there, so running init again opens them for editing.
+    destroy   Remove the links init made, and .workbench.toml with them.
+
+Options:
+    --from=FILE       Start from the picks of another workbench: its
+                      .workbench.toml, or the directory it is in.
+    --theme=SCHEME    auto, dark, light or ansi. auto asks the terminal which
+                      one it is [default: auto].
+    -k, --keep        Keep .workbench.toml, so init can make the links again.
+    -h, --help        Show this screen.
+    --version         Show version.
+
+Picking:
+    typing        narrows the list; every word typed has to match
+    Up, Down      move through the list
+    Enter         pick or unpick the highlighted place (Space, in the list)
+    Ctrl+T        show only what is picked
+    F2            switch between the light and dark colours
+    Ctrl+S        save: make and remove links to match the picks
+    Esc           leave without changing anything
+
+What is on offer is kept in ~/.workbench/config.toml, or wherever
+$WORKBENCH_CONFIG says. Links are named after what they point to; when two
+names clash the parent directory's name goes in front, as in `api-docs`.
+They point at absolute paths, so a workbench can be moved around.
+
+destroy removes a link only while it still points where init made it point.
+Everything else in the workbench, a link changed by hand included, is left
+alone.
+
+Examples:
+    workbench use ~/Kod
+    workbench add ~/notes/agents.md
+    workbench init ~/benches/billing
+    workbench init ~/benches/invoices --from ~/benches/billing
+    workbench destroy ~/benches/billing
+```
+
+A workbench is a directory to start an agent in, holding links to only the
+repositories and notes a task needs. Say once where your things live, then
+pick for each workbench:
+
+```
+workbench use ~/Kod                  # every project in ~/Kod is on offer
+workbench add ~/notes/agents.md      # and this one file
+workbench init ~/benches/billing     # pick, then Ctrl+S
+```
+
+`.workbench.toml` in the workbench lists the links `init` made, which is what
+`init` reopens for editing and what `destroy` removes:
+
+```toml
+[[link]]
+name = "billing-api"
+path = "/Users/me/Kod/billing-api"
+```
+
+The picker comes in makimo.com's colours, a light and a dark scheme. Which one
+starts is asked of the terminal (OSC 11, then `COLORFGBG`, then the macOS
+appearance), `--theme` overrides that, and F2 switches while it runs.
 
 ## Git Tools
 
