@@ -518,6 +518,37 @@ Examples:
     github-synchronize -m "feat: add new research notes"  # Custom commit message
 ```
 
+### dirty (1.0)
+
+```
+List the git repositories in a directory that have unstaged changes.
+
+Usage:
+    dirty [options] [DIR]
+    dirty -h | --help
+    dirty --version
+
+Arguments:
+    DIR    The directory holding the repositories (default: .).
+
+Options:
+    -d, --depth N       How many levels below DIR to look for repositories [default: 1].
+    -n, --no-untracked  Do not count untracked files as changes.
+    -s, --staged        Count staged changes too, so anything uncommitted shows.
+    -v, --verbose       List the changed files under each repository.
+    -h, --help          Show this message.
+    --version           Show version information.
+
+A repository has unstaged changes when a tracked file differs from what is
+staged, or when it has untracked files. DIR counts itself when it is a
+repository, and no repository is searched for repositories inside it.
+
+Repositories are printed one per line, as paths under DIR, so the list can be
+fed to other commands:
+
+    for repo in $(dirty ~/Kod); do git -C "$repo" diff --stat; done
+```
+
 ## Clipboard utilities
 
 ### copier (1.0)
