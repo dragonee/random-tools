@@ -14,7 +14,7 @@ class Response:
         self.id = response_id
         self.respondent = respondent
         self.submitted = submitted
-        self.answers = answers  # question id -> text
+        self.answers = answers  # question id -> the values given
 
     @property
     def label(self):
@@ -28,7 +28,7 @@ class Form:
         self.responses = responses
 
     def answer(self, response, question):
-        return response.answers.get(question.id, '')
+        return ', '.join(response.answers.get(question.id, []))
 
 
 def fetch(forms_service, form_id):
@@ -82,7 +82,7 @@ def responses(forms_service, form_id):
                 response.get('respondentEmail'),
                 response.get('lastSubmittedTime') or response.get('createTime', ''),
                 {
-                    question_id: answer_text(answer)
+                    question_id: answer_values(answer)
                     for question_id, answer in response.get('answers', {}).items()
                 },
             ))
@@ -95,7 +95,7 @@ def responses(forms_service, form_id):
     return found
 
 
-def answer_text(answer):
+def answer_values(answer):
     values = [
         text.get('value', '')
         for text in answer.get('textAnswers', {}).get('answers', [])
@@ -106,7 +106,42 @@ def answer_text(answer):
         for uploaded in answer.get('fileUploadAnswers', {}).get('answers', [])
     ]
 
-    return ', '.join(value for value in values if value)
+    return [value for value in values if value]
+
+
+def normal(text):
+    """Text as --match compares it: case and runs of whitespace aside."""
+
+    return ' '.join(text.split()).casefold()
+
+
+def keep_matching(form, matches):
+    """Keep only the responses that answer as `matches` asks.
+
+    `matches` is a list of (question title, answer) pairs. A response has to
+    match every question named, and any one of the answers named for it; a
+    checkbox matches when any box ticked does, and '' matches a blank. Raises
+    LookupError with the title of a question the form does not ask.
+    """
+
+    by_title = {normal(question.title): question for question in form.questions}
+    accepted = {}
+
+    for title, answer in matches:
+        question = by_title.get(normal(title))
+
+        if question is None:
+            raise LookupError(title)
+
+        accepted.setdefault(question.id, set()).add(normal(answer))
+
+    form.responses = [
+        response for response in form.responses
+        if all(
+            answers & ({normal(value) for value in response.answers.get(question_id, [])} or {''})
+            for question_id, answers in accepted.items()
+        )
+    ]
 
 
 def header_row(form):

@@ -93,13 +93,13 @@ Examples:
 
 ## Google Drive
 
-### dumper (1.1)
+### dumper (1.2)
 
 ```
 Dump Google Drive files into local documents.
 
 Usage:
-    dumper [options] [<link>...]
+    dumper [options] [--match FILTER]... [<link>...]
 
 Options:
     -c, --config SECTION   Section of ~/.google/config.ini to authorize with [default: Google].
@@ -108,6 +108,7 @@ Options:
                            to write into with --concat (default: stdout).
     --sheet-format FORMAT  Dump spreadsheets as xlsx, csv or md [default: xlsx].
     --form-format FORMAT   Dump form responses as xlsx, dir or md [default: xlsx].
+    -m, --match FILTER     Only dump form responses answering QUESTION=ANSWER.
     --concat               Write everything into a single markdown stream.
     -q, --quiet            Do not report what was written.
     -h, --help             Show this message.
@@ -142,6 +143,17 @@ With --concat every file is rendered as markdown and written to one place,
 which is what --sheet-format md and --form-format md do on their own. The
 folder structure flattens into one stream, and files that are not text are
 reported and left out.
+
+With --match, forms are narrowed down to the responses giving an answer:
+
+    dumper --form-format dir --match "Team=Design" -o dump/ FORM_LINK
+
+The question goes by its title and the answer by its text, case aside. A
+checkbox matches when any box ticked does, and an empty answer ("Team=")
+matches those who left the question blank. Given more than once, --match
+keeps the responses matching every question named, and any of the answers
+named for the same question. A form that does not ask a question named is
+skipped.
 
 The config section holds the paths to the OAuth client and to the token
 cached from it, so several accounts can each have their own section:
